@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "950595966657",
+    "project_id": "gestiontorneos-96946",
+    "storage_bucket": "gestiontorneos-96946.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950595966657:android:0d05ba27049573ed556640",
+        "android_client_info": {
+          "package_name": "com.cakocorps.administraciondetorneroselectronicos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKdFwDmjnuaJyjkT2rqwIFp6mtJgZkAZg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

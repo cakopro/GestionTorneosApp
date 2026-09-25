@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/id_Torneos"
+        android:icon="@drawable/icono_copa"
+        android:title="Torneos" />
+    <item
+        android:id="@+id/id_mis_torneos"
+        android:icon="@drawable/icono_copa"
+        android:title="Mis Torneos" />
+</menu>
