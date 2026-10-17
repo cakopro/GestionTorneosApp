@@ -8,9 +8,12 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.firestore.FirebaseFirestore
 
 
 class MisTorneosFragment : Fragment() {
+
+    private val db = FirebaseFirestore.getInstance()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -22,29 +25,39 @@ class MisTorneosFragment : Fragment() {
         val boton = view.findViewById<FloatingActionButton>(R.id.bntFlotante)
         val rvMisTorneos = view.findViewById<RecyclerView>(R.id.rvMisTorneos)
 
-        val idUsuarioActual = DatosRepository.usuarioActual?.id ?: ""
+        //buscar mi id
+        val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-        val misTorneosFiltrados = DatosRepository.listaTorneos.filter { torneo ->
-            val esCreador = torneo.idCreador == idUsuarioActual
-            val estaInscrito = torneo.inscritos.any { it.idUsuario == idUsuarioActual }
-            esCreador || estaInscrito
-        }
+        //filtro para mostrar solo torneos donde este inscrito o los haya creado
 
-        rvMisTorneos.layoutManager = LinearLayoutManager(requireContext())
-        rvMisTorneos.adapter = TorneoAdapter(misTorneosFiltrados) { torneoSeleccionado ->
+        db.collection("Torneos")
+            .get()
+            .addOnSuccessListener { result ->
+                val lista = mutableListOf<Torneo>()
+                for (document in result) {
+                    val torneo = document.toObject(Torneo::class.java)
 
-            DatosRepository.torneoSeleccionado = torneoSeleccionado
+                    if (torneo.idCreador == idUsuarioActual || torneo.inscritos.any { it.idUsuario == idUsuarioActual }) {
+                        torneo.id = document.id
+                        lista.add(torneo)
+                    }
+                }
+                //vuelve a rellenar el recicle pero solo con los datos filtrados
+                rvMisTorneos.layoutManager = LinearLayoutManager(requireContext())
+                rvMisTorneos.adapter = TorneoAdapter(lista) { torneoSeleccionado ->
 
-            requireActivity().supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, DetalleTorneoFragment())
-                .addToBackStack(null)
-                .commit()
-        }
+                    //que pasa cuando toca cardview, guarda torneo  para luego cargar los datos
+                    DatosRepository.torneoSeleccionado = torneoSeleccionado
+                    requireActivity().supportFragmentManager.beginTransaction()
+                        .replace(R.id.fragment_container, DetalleTorneoFragment())
+                        .addToBackStack(null)
+                        .commit()
+                }
+            }
 
-
-
+        //para el momento que se usa el boton flotante ir al formulario
         boton.setOnClickListener {
-
+            //se deja null para que al entrar se entienda que se busca crear
             DatosRepository.torneoSeleccionado = null
 
             requireActivity().supportFragmentManager.beginTransaction()

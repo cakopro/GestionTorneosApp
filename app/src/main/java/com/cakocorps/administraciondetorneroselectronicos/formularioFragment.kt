@@ -3,6 +3,7 @@ package com.cakocorps.administraciondetorneroselectronicos
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -13,11 +14,15 @@ import android.widget.Spinner
 import android.widget.TextView
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ArrayAdapter
+import android.widget.Toast
+import com.google.firebase.firestore.FirebaseFirestore
 import java.lang.String.format
 import java.util.Calendar
 import java.util.Locale
 
 class formularioFragment : Fragment() {
+
+    private val db = FirebaseFirestore.getInstance()
 
 
     override fun onCreateView(
@@ -31,6 +36,7 @@ class formularioFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
 
         //primer card view
         val nombreTorneo = view.findViewById<TextInputEditText>(R.id.txtNombreTorneo)
@@ -74,13 +80,16 @@ class formularioFragment : Fragment() {
 
         var esPrimeraCargaJuegos = true
 
+        //encargado de al tocar un juego cargar los otros spinner con datos de ese juego
         spinnerJuegos.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
                 val juegoSeleccionado = listaVideojuegos[position]
 
+                //rellena los spinner solo con los datos del juego seleccionado
                 spinnerDispositivos.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, juegoSeleccionado.dispositivos)
                 spinnerModalidad.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, juegoSeleccionado.modalidades)
 
+                //este arregla el error si los datos ya no existen al editar
                 val torneo = DatosRepository.torneoSeleccionado
                 if (torneo != null && esPrimeraCargaJuegos) {
                     val posDisp = juegoSeleccionado.dispositivos.indexOf(torneo.dispositivo)
@@ -99,6 +108,7 @@ class formularioFragment : Fragment() {
         spinnerFormato.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
 
             override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
+                //dependiendo de que formato se selecciona rellena de una forma u otra
                 val formatoSeleccionado = listaFormato[position]
 
                 if (formatoSeleccionado == "Play offs"){
@@ -136,8 +146,11 @@ class formularioFragment : Fragment() {
         cierreInscripcion.setOnClickListener { mostrarSelectorFechaYHora(cierreInscripcion) }
         inicioTorneo.setOnClickListener { mostrarSelectorFechaYHora(inicioTorneo) }
 
+        //si variable tiene un torneo guardado significa que alguien quiere editar
         val torneoAEditar = DatosRepository.torneoSeleccionado
+        //aca se sabe
         if (torneoAEditar != null) {
+            //cambiamos logica rellenamos campos con datos del torneo
             boton.text = "Actualizar Torneo"
 
             nombreTorneo.setText(torneoAEditar.nombre)
@@ -178,7 +191,17 @@ class formularioFragment : Fragment() {
 
             val inscritosActuales = torneoAEditar?.inscritos ?: mutableListOf()
 
+            val miUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "Desconocido"
+
+            val docRef = if (torneoAEditar != null) {
+                db.collection("Torneos").document(torneoAEditar.id)
+            } else {
+                db.collection("Torneos").document()
+            }
+
+
             val actualizadoTorneo = Torneo(
+                id = docRef.id,
                 nombre = nombre,
                 juego = juego,
                 dispositivo = dispositivo,
@@ -192,28 +215,23 @@ class formularioFragment : Fragment() {
                 costoEntrada = txtCosto.toDoubleOrNull() ?: 0.0,
                 recompensa = txtPremio,
                 reglas = txtReglas,
-                idCreador = torneoAEditar?.idCreador ?: DatosRepository.usuarioActual?.id ?: "UsuarioDesconocido",
+                idCreador = torneoAEditar?.idCreador ?: miUid,
                 inscritos = inscritosActuales
                 )
 
-            if (torneoAEditar != null) {
+             //si torneo se encuentra almacenado significa que se busca editar
+            docRef.set(actualizadoTorneo)
+                .addOnSuccessListener {
+                    val msj = if (torneoAEditar != null) "Torneo actualizado" else "¡Torneo creado con éxito!"
+                    Toast.makeText(requireContext(), msj, Toast.LENGTH_SHORT).show()
 
-                val index = DatosRepository.listaTorneos.lastIndexOf(torneoAEditar)
-                if (index != -1) {
-
-                    DatosRepository.listaTorneos[index] = actualizadoTorneo
-                    requireActivity().supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
-                    requireActivity().supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragment_container, ListaTorneosFragment())
-                        .commit()
+                    // Limpiar selección previa
+                    DatosRepository.torneoSeleccionado = null
+                    requireActivity().supportFragmentManager.popBackStack()
                 }
-
-
-            }else{
-                    DatosRepository.listaTorneos.add(actualizadoTorneo)
-                    android.widget.Toast.makeText(requireContext(), "¡Torneo creado con éxito!", android.widget.Toast.LENGTH_SHORT).show()
-                requireActivity().supportFragmentManager.popBackStack()
-            }
+                .addOnFailureListener { e ->
+                    Toast.makeText(requireContext(), "Error al guardar en la nube", Toast.LENGTH_SHORT).show()
+                }
 
 
 

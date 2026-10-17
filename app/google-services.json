@@ -12,7 +12,12 @@
           "package_name": "com.cakocorps.administraciondetorneroselectronicos"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "950595966657-fqn648jk34me3friblcaduapd4648so8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDKdFwDmjnuaJyjkT2rqwIFp6mtJgZkAZg"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "950595966657-fqn648jk34me3friblcaduapd4648so8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

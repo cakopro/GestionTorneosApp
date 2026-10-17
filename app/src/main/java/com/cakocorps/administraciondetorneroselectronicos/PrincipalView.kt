@@ -1,17 +1,26 @@
 package com.cakocorps.administraciondetorneroselectronicos
 
+import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.widget.Toolbar
+import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.navigation.NavigationView
-import androidx.core.view.GravityCompat
+import com.google.firebase.auth.FirebaseAuth
 
 
 class PrincipalView : AppCompatActivity() {
+    private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -22,9 +31,23 @@ class PrincipalView : AppCompatActivity() {
             insets
         }
 
+        firebaseAuth = FirebaseAuth.getInstance()
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
         val tolbar = findViewById<Toolbar>(R.id.toolbar)
         val navView = findViewById<NavigationView>(R.id.nav_view)
         val draweLa = findViewById<DrawerLayout>(R.id.main)
+
+        val btnCerrar = findViewById<Button>(R.id.btnSalir)
+        btnCerrar.setOnClickListener {
+            cerrarSesion()
+        }
+
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
@@ -64,5 +87,15 @@ class PrincipalView : AppCompatActivity() {
 
         }
 
+
+    }
+    fun cerrarSesion() {
+        firebaseAuth.signOut()
+
+        googleSignInClient.signOut().addOnCompleteListener {
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
     }
 }

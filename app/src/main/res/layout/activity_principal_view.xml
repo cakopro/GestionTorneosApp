@@ -23,7 +23,7 @@
             android:theme="?attr/actionBarTheme"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.0"
@@ -38,13 +38,28 @@
 
                 app:srcCompat="@drawable/icono_carga"
                 tools:layout_editor_absoluteX="56dp"
-                tools:layout_editor_absoluteY="17dp" />
+                tools:layout_editor_absoluteY="17dp">
+
+            </ImageView>
+
+            <Button
+                android:id="@+id/btnSalir"
+                android:layout_width="77dp"
+                android:layout_height="48dp"
+                android:layout_gravity="end"
+                android:foreground="@android:drawable/btn_dialog"
+                android:text="Button"
+                tools:layout_editor_absoluteX="289dp"
+                tools:layout_editor_absoluteY="92dp" />
         </androidx.appcompat.widget.Toolbar>
+
+
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/fragment_container"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            tools:layout="@layout/fragment_lista_torneos"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

@@ -9,9 +9,11 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.firestore.FirebaseFirestore
 
 class DetalleTorneoFragment : Fragment() {
 
+    private val db = FirebaseFirestore.getInstance()
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -25,11 +27,13 @@ class DetalleTorneoFragment : Fragment() {
         val tvNombre = view.findViewById<TextView>(R.id.tvNombreDetalle)
         val tvInfo = view.findViewById<TextView>(R.id.tvInfoDetalle)
 
+        //inscripcion
         val tilNombreEquipo = view.findViewById<View>(R.id.tilNombreEquipo)
         val tilContacto = view.findViewById<View>(R.id.tilContacto)
         val etNombreEquipo = view.findViewById<TextInputEditText>(R.id.etNombreEquipo)
         val etContacto = view.findViewById<TextInputEditText>(R.id.etContacto)
 
+        //botones para ocultar y mostrar
         val layoutCreador = view.findViewById<View>(R.id.layoutBotonesCreador)
         val layoutInscripcion = view.findViewById<View>(R.id.layoutBotonesInscripcion)
 
@@ -38,9 +42,11 @@ class DetalleTorneoFragment : Fragment() {
         val btnInscribirme = view.findViewById<Button>(R.id.btnInscribirme)
         val btnSalirTorneo = view.findViewById<Button>(R.id.btnSalirTorneo)
 
+        //ver torneo seleccionado y su usuario
         val torneo = DatosRepository.torneoSeleccionado
-        val usuario = DatosRepository.usuarioActual
-        val idUsuarioActual = usuario?.id ?: ""
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+        val usuarioActual = auth.currentUser
+        val idUsuarioActual = usuarioActual?.uid ?: ""
 
         if (torneo != null){
 
@@ -55,6 +61,7 @@ class DetalleTorneoFragment : Fragment() {
                 Reglas:
                 ${torneo.reglas}
             """.trimIndent()
+            //para ver que botones o que interfaz darte
             val escreador = torneo.idCreador == idUsuarioActual
             val inscripcionExistente = torneo.inscritos.find { it.idUsuario == idUsuarioActual }
 
@@ -62,6 +69,7 @@ class DetalleTorneoFragment : Fragment() {
             if (escreador){
 
                 layoutCreador.visibility = View.VISIBLE
+                //desaparece todo lo de inscribirse
                 layoutInscripcion.visibility = View.GONE
 
                 tilNombreEquipo.visibility = View.GONE
@@ -77,11 +85,12 @@ class DetalleTorneoFragment : Fragment() {
                 }
 
                 btnEliminar.setOnClickListener {
-                    DatosRepository.listaTorneos.remove(torneo)
+                    db.collection("Torneos").document(torneo.id).delete()
                     Toast.makeText(requireContext(), "Torneo eliminado correctamente", Toast.LENGTH_SHORT).show()
                     requireActivity().supportFragmentManager.popBackStack()
                 }
             }else{
+                //desaparece tpdp ñp de creador
                 layoutCreador.visibility = View.GONE
                 layoutInscripcion.visibility = View.VISIBLE
                 tilNombreEquipo.visibility = View.VISIBLE
@@ -107,6 +116,7 @@ class DetalleTorneoFragment : Fragment() {
                 btnInscribirme.setOnClickListener {
                     val equipo = etNombreEquipo.text.toString().trim()
                     val contacto = etContacto.text.toString().trim()
+                    val nombreParaInscripcion = usuarioActual?.email?.substringBefore("@") ?: "Anónimo"
 
                     if (equipo.isEmpty() || contacto.isEmpty()) {
                         Toast.makeText(requireContext(), "Completa los datos de inscripción", Toast.LENGTH_SHORT).show()
@@ -115,7 +125,7 @@ class DetalleTorneoFragment : Fragment() {
 
                     val nuevaInscri = Inscripcion(idUsuario = idUsuarioActual,
                         nombreEquipo = equipo,
-                        nombreParticipante = usuario?.nombre ?: "Anonimo",
+                        nombreParticipante = nombreParaInscripcion,
                         contactoLider = contacto
                     )
 
