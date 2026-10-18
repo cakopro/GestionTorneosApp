@@ -1,5 +1,6 @@
 package com.cakocorps.administraciondetorneroselectronicos
 
+import android.app.AlertDialog
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -85,9 +86,25 @@ class DetalleTorneoFragment : Fragment() {
                 }
 
                 btnEliminar.setOnClickListener {
-                    db.collection("Torneos").document(torneo.id).delete()
-                    Toast.makeText(requireContext(), "Torneo eliminado correctamente", Toast.LENGTH_SHORT).show()
-                    requireActivity().supportFragmentManager.popBackStack()
+
+                    AlertDialog.Builder(context)
+                        .setTitle("Eliminar Torneo")
+                        .setMessage("¿ Esta seguro de que quiere eliminar este torneo?")
+                        .setPositiveButton("Eliminar"){dialog, _ ->
+
+                            db.collection("Torneos").document(torneo.id).delete()
+                                .addOnSuccessListener {
+                                    Toast.makeText(requireContext(), "Torneo eliminado correctamente",
+                                        Toast.LENGTH_SHORT).show()
+                                    requireActivity().supportFragmentManager.popBackStack()
+                                }
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton("Cancelar"){ dialog, _ ->
+
+                            dialog.dismiss()
+                        }.create()
+                        .show()
                 }
             }else{
                 //desaparece tpdp ñp de creador
@@ -103,9 +120,28 @@ class DetalleTorneoFragment : Fragment() {
                     btnSalirTorneo.visibility = View.VISIBLE
 
                     btnSalirTorneo.setOnClickListener {
-                        torneo.inscritos.remove(inscripcionExistente)
-                        Toast.makeText(requireContext(), "Has salido del torneo", Toast.LENGTH_SHORT).show()
-                        requireActivity().supportFragmentManager.popBackStack()
+
+                        AlertDialog.Builder(context)
+                            .setTitle("Salir del Torneo")
+                            .setMessage("¿ Esta seguro de que desea salir del torneo?")
+                            .setPositiveButton("Eliminar"){dialog, _ ->
+
+                                db.collection("Torneos").document(torneo.id).update("inscritos", torneo.inscritos)
+                                    .addOnSuccessListener {
+                                        torneo.inscritos.remove(inscripcionExistente)
+                                        Toast.makeText(requireContext(), "Has salido del torneo",
+                                            Toast.LENGTH_SHORT).show()
+                                        requireActivity().supportFragmentManager.popBackStack()
+
+                                    }
+                                dialog.dismiss()
+
+                            }
+                            .setNegativeButton("Cancelar"){ dialog, _ ->
+
+                                dialog.dismiss()
+                            }.create()
+                            .show()
                     }
 
                 }else{
@@ -138,10 +174,22 @@ class DetalleTorneoFragment : Fragment() {
                         }
                     }else{
                             torneo.inscritos.add(nuevaInscri)
-                            Toast.makeText(requireContext(), "¡Inscripción exitosa!", Toast.LENGTH_SHORT).show()
-                        }
-                        requireActivity().supportFragmentManager.popBackStack()
+                            db.collection("Torneos").document(torneo.id)
+                            .update("inscritos", torneo.inscritos)
+                                .addOnSuccessListener {
 
+                                    Toast.makeText(requireContext(), "¡Inscripción exitosa!", Toast.LENGTH_SHORT).show()
+                                    requireActivity().supportFragmentManager.popBackStack()
+                                }
+                                .addOnFailureListener {
+                                    torneo.inscritos.remove(nuevaInscri)
+                                    btnInscribirme.isEnabled = true
+                                    btnInscribirme.text = "Inscribirse al Torneo"
+                                    Toast.makeText(requireContext(), "Error de red, intenta nuevamente",
+                                        Toast.LENGTH_SHORT).show()
+                                }
+
+                        }
 
                 }
 

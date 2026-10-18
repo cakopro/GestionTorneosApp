@@ -25,6 +25,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.jar.Manifest
 
@@ -34,17 +36,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
 
+    //google
     private val googleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
+
             val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+
             try {
+                //conectarese con google
                 val account = task.getResult(ApiException::class.java)!!
 
                 firebaseAuthWithGoogle(account.idToken!!)
             } catch (e: ApiException) {
-                Log.w(TAG, "Google sign in failed", e)
                 Toast.makeText(this, "Error al seleccionar cuenta de Google", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    //si ya metiste la cuenta inicia de una
+    override fun onStart(){
+        super.onStart()
+        if (firebaseAuth.currentUser !=null){
+
+            startActivity(Intent(this,PrincipalView::class.java))
+            finish()
         }
     }
 
@@ -57,6 +72,7 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        //extraer boton, txt
         val botonIngresar = findViewById<Button>(R.id.btnIngresar)
         val contra = findViewById<TextInputEditText>(R.id.idContra)
         val correo = findViewById<TextInputEditText>(R.id.idCorreo)
@@ -81,6 +97,18 @@ class MainActivity : AppCompatActivity() {
             if (correotxt.isEmpty() || contratxt.isEmpty()){
                 Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener}
+
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(correotxt).matches()) {
+                Toast.makeText(this, "Ingresa un formato de correo electrónico válido", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (contratxt.length < 6) {
+                Toast.makeText(this, "La contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+
             ingresar(correotxt, contratxt)
 
                 firebaseAnalytics.logEvent(FirebaseAnalytics.Event.LOGIN){
@@ -106,14 +134,14 @@ class MainActivity : AppCompatActivity() {
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    Log.d(TAG, "firebaseAuthWithGoogle:success")
+
                     Toast.makeText(this, "¡Bienvenido!", Toast.LENGTH_SHORT).show()
                     val intent = Intent(this, PrincipalView::class.java)
+
                     startActivity(intent)
                     finish()
                 } else {
-                    Log.w(TAG, "firebaseAuthWithGoogle:failure", task.exception)
-                    Toast.makeText(this, "Fallo al autenticar con Firebase", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Fallo al autenticar con google. Intentalo denuevo", Toast.LENGTH_SHORT).show()
                 }
             }
     }
@@ -125,10 +153,17 @@ class MainActivity : AppCompatActivity() {
         .addOnCompleteListener(this) { task ->
             if (task.isSuccessful) {
             val user = firebaseAuth .currentUser
+                Toast.makeText(this, "¡Bienvenido!", Toast.LENGTH_SHORT).show()
             val intent = Intent(this, PrincipalView::class.java)
             startActivity(intent)
+                finish()
             } else {
-            Toast.makeText(this, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
+                val errorMensaje = when (task.exception){
+                    is FirebaseAuthInvalidUserException -> "No existe cuenta con este correo"
+                    is FirebaseAuthInvalidCredentialsException -> "la contraseña es incorrecta"
+                    else -> "Error al iniciar sesion, compruebe conexion"
+                }
+            Toast.makeText(this, errorMensaje, Toast.LENGTH_SHORT).show()
             }
         }
 

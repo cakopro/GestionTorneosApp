@@ -39,16 +39,33 @@ class Registrarse : AppCompatActivity() {
     }
 
     private fun crearRegistro() {
-        val contra = findViewById<TextInputEditText>(R.id.idContra).text.toString()
-        val correo = findViewById<TextInputEditText>(R.id.idCorreo).text.toString()
+        val contra = findViewById<TextInputEditText>(R.id.idContra).text.toString().trim()
+        val correo = findViewById<TextInputEditText>(R.id.idCorreo).text.toString().trim()
+
+
+        //validaciones
+        if (contra.isEmpty() || correo.isEmpty()){
+            Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (contra.length < 6) {
+            Toast.makeText(this, "La contraseña debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+
         firebaseAuth.createUserWithEmailAndPassword(correo, contra)
         .addOnCompleteListener(this) { task ->
             if (task.isSuccessful) {
-            val user = firebaseAuth.currentUser
+
+                val user = firebaseAuth.currentUser
             Toast.makeText(this, "usuario ha sido creado", Toast.LENGTH_SHORT).show()
-            finish() // Reemplaza onBackPressed()
+            finish()
+
             } else {
-            Toast.makeText(this, "Fallo la autenticación", Toast.LENGTH_SHORT).show()
+                val errorReal = task.exception?.message ?: "Error desconocido"
+                Toast.makeText(this, "Fallo: $errorReal", Toast.LENGTH_LONG).show()
             }
 
         }

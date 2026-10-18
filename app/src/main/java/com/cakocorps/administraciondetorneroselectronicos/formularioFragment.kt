@@ -19,6 +19,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.lang.String.format
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.cos
 
 class formularioFragment : Fragment() {
 
@@ -174,13 +175,13 @@ class formularioFragment : Fragment() {
 
 
         boton.setOnClickListener {
-            val nombre = nombreTorneo.text.toString()
-            val txtInscripcion = inscripcion.text.toString()
-            val txtCierre = cierreInscripcion.text.toString()
-            val txtInicio = inicioTorneo.text.toString()
-            val txtCosto = costoEntrada.text.toString()
-            val txtPremio = recompensa.text.toString()
-            val txtReglas = reglas.text.toString()
+            val nombre = nombreTorneo.text.toString().trim()
+            val txtInscripcion = inscripcion.text.toString().trim()
+            val txtCierre = cierreInscripcion.text.toString().trim()
+            val txtInicio = inicioTorneo.text.toString().trim()
+            val txtCosto = costoEntrada.text.toString().trim()
+            val txtPremio = recompensa.text.toString().trim()
+            val txtReglas = reglas.text.toString().trim()
             val numeroCupos = cupos.text.toString().toIntOrNull() ?:16
 
             val juego = spinnerJuegos.selectedItem?.toString() ?: ""
@@ -189,9 +190,33 @@ class formularioFragment : Fragment() {
             val formatoElegido = spinnerFormato.selectedItem?.toString() ?: ""
             val tipoEntrada = entrada.selectedItem?.toString() ?: ""
 
-            val inscritosActuales = torneoAEditar?.inscritos ?: mutableListOf()
+            val requiereCosto = tipoEntrada == "De Pago"
 
+
+            if (nombre.isEmpty() || txtInscripcion.isEmpty() || txtCierre.isEmpty() || txtInicio.isEmpty() ||
+                txtPremio.isEmpty() || txtReglas.isEmpty() || (requiereCosto && txtCosto.isEmpty() )){
+
+                Toast.makeText(requireContext(), "Debe rellenar todos los campos",
+                    Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val costoNum = txtCosto.toDoubleOrNull() ?: 0.0
+
+            //valida costo negativo
+            if (costoNum < 0){
+                Toast.makeText(requireContext(), "El costo debe ser un numero positivo.",
+                    Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val inscritosActuales = torneoAEditar?.inscritos ?: mutableListOf()
+            //id usuario creador
             val miUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "Desconocido"
+
+            //para evitar multiples presionados
+            boton.isEnabled = false
+            boton.text = "Guardando..."
 
             val docRef = if (torneoAEditar != null) {
                 db.collection("Torneos").document(torneoAEditar.id)
@@ -212,7 +237,7 @@ class formularioFragment : Fragment() {
                 fechaCierre = txtCierre,
                 fechaInicio = txtInicio,
                 tipoEntrada = tipoEntrada,
-                costoEntrada = txtCosto.toDoubleOrNull() ?: 0.0,
+                costoEntrada = costoNum,
                 recompensa = txtPremio,
                 reglas = txtReglas,
                 idCreador = torneoAEditar?.idCreador ?: miUid,
@@ -231,6 +256,8 @@ class formularioFragment : Fragment() {
                 }
                 .addOnFailureListener { e ->
                     Toast.makeText(requireContext(), "Error al guardar en la nube", Toast.LENGTH_SHORT).show()
+                    boton.isEnabled = true
+                    boton.text = if (torneoAEditar != null) "Actualizar Torneo" else "Guardar"
                 }
 
 

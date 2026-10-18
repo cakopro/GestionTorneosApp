@@ -48,7 +48,7 @@ class PrincipalView : AppCompatActivity() {
             cerrarSesion()
         }
 
-
+        //para que cuando se abra arranque con la lista torneos
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, ListaTorneosFragment())
@@ -89,6 +89,7 @@ class PrincipalView : AppCompatActivity() {
 
 
     }
+    //cerrar sesion
     fun cerrarSesion() {
         firebaseAuth.signOut()
 
