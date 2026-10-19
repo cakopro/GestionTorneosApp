@@ -16,5 +16,5 @@ data class Torneo(
     val recompensa: String = "",
     val reglas: String = "",
     val idCreador: String = "",
-    val inscritos: MutableList<Inscripcion> = mutableListOf()
+    val estado: String = "abierto"
 )

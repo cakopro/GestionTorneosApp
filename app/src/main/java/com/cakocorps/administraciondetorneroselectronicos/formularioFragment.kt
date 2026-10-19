@@ -210,7 +210,6 @@ class formularioFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val inscritosActuales = torneoAEditar?.inscritos ?: mutableListOf()
             //id usuario creador
             val miUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "Desconocido"
 
@@ -241,7 +240,7 @@ class formularioFragment : Fragment() {
                 recompensa = txtPremio,
                 reglas = txtReglas,
                 idCreador = torneoAEditar?.idCreador ?: miUid,
-                inscritos = inscritosActuales
+                estado = "abierto"
                 )
 
              //si torneo se encuentra almacenado significa que se busca editar

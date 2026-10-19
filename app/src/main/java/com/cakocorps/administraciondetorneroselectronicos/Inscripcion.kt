@@ -1,10 +1,15 @@
 package com.cakocorps.administraciondetorneroselectronicos
 
 data class Inscripcion(
-    val idUsuario: String,
-    val nombreEquipo: String? = null,
-    val nombreParticipante: String,
-    val nombreCapitan: String? = null,
-    val contactoLider: String,
-    val pagoRealizado: Boolean = false
+    var idInscripcion: String = "",
+    var idTorneo: String = "",
+    var idUsuario: String = "",
+
+
+    var esEquipo: Boolean = false,
+    var nombreEquipo: String = "",
+    var integrantes: List<String> = emptyList(),
+    var contactoLider: String = "",
+    var pagoRealizado: Boolean = false
+
 )

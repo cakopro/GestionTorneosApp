@@ -30,30 +30,45 @@ class MisTorneosFragment : Fragment() {
 
         //filtro para mostrar solo torneos donde este inscrito o los haya creado
 
-        db.collection("Torneos")
+        db.collection("Inscripciones")
+            .whereEqualTo("idUsuario",idUsuarioActual)
             .get()
-            .addOnSuccessListener { result ->
-                val lista = mutableListOf<Torneo>()
-                for (document in result) {
-                    val torneo = document.toObject(Torneo::class.java)
+            .addOnSuccessListener { inscripcionesSnapshot ->
+                val misTorneosInscritosIds = mutableListOf<String>()
+                for (doc in inscripcionesSnapshot) {
+                    doc.getString("idTorneo")?.let { misTorneosInscritosIds.add(it) }
+                }
 
-                    if (torneo.idCreador == idUsuarioActual || torneo.inscritos.any { it.idUsuario == idUsuarioActual }) {
-                        torneo.id = document.id
-                        lista.add(torneo)
+                db.collection("Torneos")
+                    .get()
+                    .addOnSuccessListener { result ->
+                        val lista = mutableListOf<Torneo>()
+                        for (document in result) {
+                            val torneo = document.toObject(Torneo::class.java)
+
+                            torneo.id = document.id
+
+                            if (torneo.idCreador == idUsuarioActual || misTorneosInscritosIds.contains(torneo.id)) {
+                                lista.add(torneo)
+                            }
+                        }
+                        //vuelve a rellenar el recicle pero solo con los datos filtrados
+                        rvMisTorneos.layoutManager = LinearLayoutManager(requireContext())
+                        rvMisTorneos.adapter = TorneoAdapter(lista) { torneoSeleccionado ->
+
+                            //que pasa cuando toca cardview, guarda torneo  para luego cargar los datos
+                            DatosRepository.torneoSeleccionado = torneoSeleccionado
+                            requireActivity().supportFragmentManager.beginTransaction()
+                                .replace(R.id.fragment_container, DetalleTorneoFragment())
+                                .addToBackStack(null)
+                                .commit()
+                        }
                     }
-                }
-                //vuelve a rellenar el recicle pero solo con los datos filtrados
-                rvMisTorneos.layoutManager = LinearLayoutManager(requireContext())
-                rvMisTorneos.adapter = TorneoAdapter(lista) { torneoSeleccionado ->
 
-                    //que pasa cuando toca cardview, guarda torneo  para luego cargar los datos
-                    DatosRepository.torneoSeleccionado = torneoSeleccionado
-                    requireActivity().supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragment_container, DetalleTorneoFragment())
-                        .addToBackStack(null)
-                        .commit()
-                }
             }
+
+
+
 
         //para el momento que se usa el boton flotante ir al formulario
         boton.setOnClickListener {
