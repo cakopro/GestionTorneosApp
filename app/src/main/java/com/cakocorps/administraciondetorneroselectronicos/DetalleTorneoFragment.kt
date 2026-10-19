@@ -117,8 +117,8 @@ class DetalleTorneoFragment : Fragment() {
                         }
                     }else{
                         //desaparece tpdp ñp de creador
-                        layoutCreador.visibility = View.GONE
-                        layoutInscripcion.visibility = View.VISIBLE
+                        btnInscribirme.visibility = View.GONE
+                        btnSalirTorneo.visibility = View.VISIBLE
 
                         if (miInscripcion != null){
                             btnSalirTorneo.visibility = View.VISIBLE
@@ -148,12 +148,15 @@ class DetalleTorneoFragment : Fragment() {
                             }
 
                         }else{
-                            btnInscribirme.text = "Inscribirse al Torneo"
                             btnSalirTorneo.visibility = View.GONE
+                            btnInscribirme.visibility = View.VISIBLE
                         }
                         if (cantidadInscritos >= torneo.cupos) {
                             btnInscribirme.isEnabled = false
                             btnInscribirme.text = "Torneo Lleno"
+                        } else {
+                            btnInscribirme.isEnabled = true
+                            btnInscribirme.text = "Inscribirse al Torneo"
                         }
                     }
 

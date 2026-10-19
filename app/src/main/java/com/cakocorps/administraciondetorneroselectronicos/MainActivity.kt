@@ -154,6 +154,7 @@ class MainActivity : AppCompatActivity() {
             if (task.isSuccessful) {
             val user = firebaseAuth .currentUser
                 Toast.makeText(this, "¡Bienvenido!", Toast.LENGTH_SHORT).show()
+
             val intent = Intent(this, PrincipalView::class.java)
             startActivity(intent)
                 finish()
