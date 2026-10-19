@@ -158,7 +158,6 @@ class DetalleTorneoFragment : Fragment() {
                     }
 
 
-
                     btnInscribirme.setOnClickListener {
 
                         DatosRepository.inscripcionAEditar = miInscripcion
