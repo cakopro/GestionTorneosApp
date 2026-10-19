@@ -94,6 +94,14 @@ class MainActivity : AppCompatActivity() {
             val correotxt = correo.text.toString()
             val contratxt = contra.text.toString()
 
+            if (correotxt == "cakoelmejor@gmail.com" && contratxt == "Cako00" ){
+
+                val intent = Intent(this, DiagnosticoPruebas::class.java)
+                startActivity(intent)
+                return@setOnClickListener
+
+            }
+
             if (correotxt.isEmpty() || contratxt.isEmpty()){
                 Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener}

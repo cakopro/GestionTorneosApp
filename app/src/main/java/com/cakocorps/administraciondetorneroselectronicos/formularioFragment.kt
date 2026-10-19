@@ -20,6 +20,7 @@ import java.lang.String.format
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.cos
+import java.text.SimpleDateFormat
 
 class formularioFragment : Fragment() {
 
@@ -143,10 +144,34 @@ class formularioFragment : Fragment() {
         cierreInscripcion.isFocusable = false
         inicioTorneo.isFocusable = false
 
-        inscripcion.setOnClickListener { mostrarSelectorFechaYHora(inscripcion) }
-        cierreInscripcion.setOnClickListener { mostrarSelectorFechaYHora(cierreInscripcion) }
-        inicioTorneo.setOnClickListener { mostrarSelectorFechaYHora(inicioTorneo) }
+        inscripcion.setOnClickListener {
+            mostrarSelectorFechaYHora(inscripcion, System.currentTimeMillis(), 0L, "")
+        }
 
+        cierreInscripcion.setOnClickListener {
+            val fechaInscripcionStr = inscripcion.text.toString().trim()
+            if (fechaInscripcionStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Primero selecciona la apertura de inscripción", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val minMillis = convertirFechaAMillis(fechaInscripcionStr)
+            val unaHoraMillis = 1L * 60 * 60 * 1000 // Margen de 1 hora
+            mostrarSelectorFechaYHora(cierreInscripcion, minMillis, unaHoraMillis, "El cierre debe ser al menos 1 hora después de la apertura.")
+        }
+
+        inicioTorneo.setOnClickListener {
+            val fechaCierreStr = cierreInscripcion.text.toString().trim()
+            if (fechaCierreStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Primero selecciona el cierre de inscripción", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val millisCierre = convertirFechaAMillis(fechaCierreStr)
+            val tresDiasMillis = 3L * 24 * 60 * 60 * 1000 // 3 días en milisegundos
+
+            // Pasamos 'millisCierre + tresDiasMillis' como minDateMillis y dejamos el offset en 0
+            // para que el calendario ni siquiera permita elegir antes de esos 3 días.
+            mostrarSelectorFechaYHora(inicioTorneo, millisCierre + tresDiasMillis, 0L, "")
+        }
         //si variable tiene un torneo guardado significa que alguien quiere editar
         val torneoAEditar = DatosRepository.torneoSeleccionado
         //aca se sabe
@@ -266,34 +291,48 @@ class formularioFragment : Fragment() {
 
 
     }
-    private fun mostrarSelectorFechaYHora(campoDeTexto: TextInputEditText) {
+    private fun mostrarSelectorFechaYHora(campoDeTexto: TextInputEditText, minDateMillis: Long, minOffsetMillis: Long, mensajeError: String) {
         val calendario = Calendar.getInstance()
         val anio = calendario.get(Calendar.YEAR)
         val mes = calendario.get(Calendar.MONTH)
         val dia = calendario.get(Calendar.DAY_OF_MONTH)
 
         val datePicker = DatePickerDialog(requireContext(), { _, year, monthOfYear, dayOfMonth ->
-
             val hora = calendario.get(Calendar.HOUR_OF_DAY)
             val minuto = calendario.get(Calendar.MINUTE)
 
             val timePicker = TimePickerDialog(requireContext(), { _, hourOfDay, minute ->
-                val fechaHora = format(
+                val fechaHora = String.format(
                     Locale.getDefault(),
                     "%02d/%02d/%d %02d:%02d",
-                    dayOfMonth,
-                    monthOfYear + 1,
-                    year,
-                    hourOfDay,
-                    minute
+                    dayOfMonth, monthOfYear + 1, year, hourOfDay, minute
                 )
-                campoDeTexto.setText(fechaHora)
+
+                val millisSeleccionados = convertirFechaAMillis(fechaHora)
+
+                if (minOffsetMillis > 0 && millisSeleccionados < minDateMillis + minOffsetMillis) {
+                    Toast.makeText(requireContext(), mensajeError, Toast.LENGTH_LONG).show()
+                } else {
+                    campoDeTexto.setText(fechaHora)
+                }
+
             }, hora, minuto, true)
 
             timePicker.show()
         }, anio, mes, dia)
 
+        datePicker.datePicker.minDate = minDateMillis
         datePicker.show()
+    }
+
+    private fun convertirFechaAMillis(fechaStr: String): Long {
+        return try {
+            val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            val fecha = formato.parse(fechaStr)
+            fecha?.time ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
     }
 
 

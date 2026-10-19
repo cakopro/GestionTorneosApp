@@ -12,6 +12,8 @@ import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.compareTo
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class DetalleTorneoFragment : Fragment() {
 
@@ -50,6 +52,8 @@ class DetalleTorneoFragment : Fragment() {
             tvNombre.text = torneo.nombre
             tvInfo.text = "Cargando información de cupos..."
 
+
+            //cargado de inscritos en el torneo / ver si estas inscrito en el torneo selccionado
             db.collection("Inscripciones")
                 .whereEqualTo("idTorneo",torneo.id)
                 .get()
@@ -66,6 +70,7 @@ class DetalleTorneoFragment : Fragment() {
                             break
                         }
 
+                    //cargado de informacion al tvInfo
                     tvInfo.text = """
                 Juego: ${torneo.juego} (${torneo.dispositivo})
                 Modalidad: ${torneo.modalidad} | Formato: ${torneo.formato}
@@ -117,12 +122,35 @@ class DetalleTorneoFragment : Fragment() {
                         }
                     }else{
                         //desaparece tpdp ñp de creador
-                        btnInscribirme.visibility = View.GONE
-                        btnSalirTorneo.visibility = View.VISIBLE
+                        layoutCreador.visibility = View.GONE
+                        layoutInscripcion.visibility = View.VISIBLE
+
+                        //tiempos para validar inscripcion
+                        val tiempoActual = System.currentTimeMillis()
+                        val millisApertura = convertirFechaAMillis(torneo.fechaInscripcion)
+                        val millisCierre = convertirFechaAMillis(torneo.fechaCierre)
+
 
                         if (miInscripcion != null){
+
+                            // si ya esta inscrito
                             btnSalirTorneo.visibility = View.VISIBLE
 
+
+                            if (tiempoActual > millisCierre) {
+                                btnSalirTorneo.isEnabled = false
+                                btnSalirTorneo.text = "Inscripciones Cerradas"
+                                btnInscribirme.isEnabled = false
+                                btnInscribirme.text = "Torneo Cerrado"
+                            } else {
+                                btnSalirTorneo.isEnabled = true
+                                btnSalirTorneo.text = "Salir del Torneo"
+                                btnInscribirme.isEnabled = true
+                                btnInscribirme.text = "Actualizar mis datos"
+                            }
+
+
+                            //salir del torneo con confirmacion
                             btnSalirTorneo.setOnClickListener {
 
                                 AlertDialog.Builder(context)
@@ -150,14 +178,25 @@ class DetalleTorneoFragment : Fragment() {
                         }else{
                             btnSalirTorneo.visibility = View.GONE
                             btnInscribirme.visibility = View.VISIBLE
+
+                            //validaciones tiempo de inscripcion, capacidad del torneo
+
+                            if (tiempoActual < millisApertura) {
+                                btnInscribirme.isEnabled = false
+                                btnInscribirme.text = "Aún no disponible"
+                            } else if (tiempoActual > millisCierre) {
+                                btnInscribirme.isEnabled = false
+                                btnInscribirme.text = "Inscripciones Cerradas"
+                            } else if (cantidadInscritos >= torneo.cupos) {
+                                btnInscribirme.isEnabled = false
+                                btnInscribirme.text = "Torneo Lleno"
+                            } else {
+                                btnInscribirme.isEnabled = true
+                                btnInscribirme.text = "Inscribirse al Torneo"
+                            }
+
                         }
-                        if (cantidadInscritos >= torneo.cupos) {
-                            btnInscribirme.isEnabled = false
-                            btnInscribirme.text = "Torneo Lleno"
-                        } else {
-                            btnInscribirme.isEnabled = true
-                            btnInscribirme.text = "Inscribirse al Torneo"
-                        }
+
                     }
 
 
@@ -173,11 +212,17 @@ class DetalleTorneoFragment : Fragment() {
                 }
 
 
+
+
         }
 
-                }
-
-
-
-
+    }
+        private fun convertirFechaAMillis(fechaStr: String): Long {
+            return try {
+                val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                val fecha = formato.parse(fechaStr)
+                fecha?.time ?: 0L
+            } catch (e: Exception) {
+                0L}
+    }
     }

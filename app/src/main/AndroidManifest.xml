@@ -3,9 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -36,11 +34,17 @@
             android:windowSoftInputMode="adjustResize" />
 
         <service
-            android:name="com.cakocorps.administraciondetorneroselectronicos.MyFirebaseMessagingService"
+            android:name=".MyFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
-        </intent-filter>
+            </intent-filter>
         </service>
+
+        <activity
+            android:name=".DiagnosticoPruebas"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
     </application>
+
 </manifest>

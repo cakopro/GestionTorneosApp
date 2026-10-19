@@ -13,6 +13,7 @@ import com.google.firebase.analytics.analytics
 import com.google.firebase.auth.FirebaseAuth
 import android.util.Log
 import android.content.ContentValues.TAG
+import android.content.Intent
 import com.google.firebase.auth.auth
 import android.widget.Toast
 
@@ -61,7 +62,9 @@ class Registrarse : AppCompatActivity() {
 
                 val user = firebaseAuth.currentUser
             Toast.makeText(this, "usuario ha sido creado", Toast.LENGTH_SHORT).show()
-            finish()
+                val intent = Intent(this, PrincipalView::class.java)
+                startActivity(intent)
+                finish()
 
             } else {
                 val errorReal = task.exception?.message ?: "Error desconocido"
