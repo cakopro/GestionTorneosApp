@@ -44,9 +44,6 @@ class DetalleTorneoFragment : Fragment() {
 
         val btnEditar = view.findViewById<Button>(R.id.btnEditar)
         val btnEliminar = view.findViewById<Button>(R.id.btnEliminar)
-
-        btnEliminar.text = "Eliminar Torneo"
-
         val btnInscribirme = view.findViewById<Button>(R.id.btnInscribirme)
         val btnSalirTorneo = view.findViewById<Button>(R.id.btnSalirTorneo)
 
@@ -63,52 +60,6 @@ class DetalleTorneoFragment : Fragment() {
         if (torneo != null){
             tvNombre.text = torneo.nombre
             tvInfo.text = "Cargando información de cupos..."
-
-
-
-            val esCreador = torneo.idCreador == idUsuarioActual
-
-            if (esCreador) {
-                // Si es el creador, mostramos sus botones ("Editar" y "Eliminar Torneo") y ocultamos lo de inscribirse
-                layoutCreador.visibility = View.VISIBLE
-                layoutInscripcion.visibility = View.GONE
-
-                btnEditar.setOnClickListener {
-                    requireActivity().supportFragmentManager.beginTransaction()
-                        .replace(R.id.fragment_container, formularioFragment())
-                        .addToBackStack(null)
-                        .commit()
-                }
-
-                btnEliminar.setOnClickListener {
-                    AlertDialog.Builder(context)
-                        .setTitle("Eliminar Torneo")
-                        .setMessage("¿Está seguro de que quiere eliminar este torneo?")
-                        .setPositiveButton("Eliminar") { dialog, _ ->
-                            db.collection("Torneos").document(torneo.id).delete()
-                                .addOnSuccessListener {
-                                    Toast.makeText(requireContext(), "Torneo eliminado correctamente", Toast.LENGTH_SHORT).show()
-
-                                    firebaseAnalytics.logEvent("registro_eliminado") {
-                                        param("tipo_entidad", "Torneo")
-                                    }
-
-                                    requireActivity().supportFragmentManager.popBackStack()
-                                }
-                            dialog.dismiss()
-                        }
-                        .setNegativeButton("Cancelar") { dialog, _ ->
-                            dialog.dismiss()
-                        }.create()
-                        .show()
-                }
-            } else {
-                // Si NO es el creador, mostramos el layout de inscripciones
-                layoutCreador.visibility = View.GONE
-                layoutInscripcion.visibility = View.VISIBLE
-            }
-
-
 
 
             //cargado de inscritos en el torneo / ver si estas inscrito en el torneo selccionado
@@ -318,12 +269,12 @@ class DetalleTorneoFragment : Fragment() {
         }
 
     }
-    private fun convertirFechaAMillis(fechaStr: String): Long {
-        return try {
-            val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            val fecha = formato.parse(fechaStr)
-            fecha?.time ?: 0L
-        } catch (e: Exception) {
-            0L}
+        private fun convertirFechaAMillis(fechaStr: String): Long {
+            return try {
+                val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                val fecha = formato.parse(fechaStr)
+                fecha?.time ?: 0L
+            } catch (e: Exception) {
+                0L}
     }
-}
+    }
