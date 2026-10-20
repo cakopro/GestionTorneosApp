@@ -78,9 +78,37 @@ class DetalleTorneoFragment : Fragment() {
                 Premio: ${torneo.recompensa}
                 Cupos: $cantidadInscritos / ${torneo.cupos}
                 
+                Apertura: ${'$'}{torneo.fechaInscripcion}
+                Cierre: ${'$'}{torneo.fechaCierre}
+                
                 Reglas:
                 ${torneo.reglas}
                 """.trimIndent()
+
+                    btnParticipantes.setOnClickListener {
+                        if (querySnapshot.isEmpty) {
+                            Toast.makeText(requireContext(), "No hay participantes inscritos aún", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val listaParticipantes = querySnapshot.documents.mapIndexed { index, doc ->
+                                val inscripcion = doc.toObject(Inscripcion::class.java)
+
+                                val texto = if (inscripcion?.esEquipo == true) {
+                                    "Equipo: ${inscripcion.nombreEquipo} (${inscripcion.integrantes.size} miembros)"
+                                } else {
+                                    inscripcion?.nombreEquipo ?: "Participante Desconocido"
+                                }
+                                "${index + 1}. $texto"
+                            }.toTypedArray()
+
+                            AlertDialog.Builder(requireContext())
+                                .setTitle("Participantes (${querySnapshot.size()})")
+                                .setItems(listaParticipantes, null)
+                                .setPositiveButton("Cerrar", null)
+                                .show()
+                        }
+                    }
+
+
 
                     //para ver que botones o que interfaz darte
                     val escreador = torneo.idCreador == idUsuarioActual

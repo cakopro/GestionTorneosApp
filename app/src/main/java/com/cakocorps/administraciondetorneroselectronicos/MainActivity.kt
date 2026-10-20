@@ -27,6 +27,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.jar.Manifest
 
@@ -56,11 +57,42 @@ class MainActivity : AppCompatActivity() {
     //si ya metiste la cuenta inicia de una
     override fun onStart(){
         super.onStart()
-        if (firebaseAuth.currentUser !=null){
+        val user = firebaseAuth.currentUser
 
-            startActivity(Intent(this,PrincipalView::class.java))
-            finish()
+        if (user != null){
+
+            FirebaseFirestore.getInstance().collection("Usuarios").document(user.uid)
+                .get()
+                .addOnSuccessListener { documento ->
+
+                if (documento.exists()) {
+                    DatosRepository.usuarioActual = documento.toObject(Usuario::class.java)
+                } else {
+                    //por si no tiene documento
+                    DatosRepository.usuarioActual = Usuario(id = user.uid, nombre = "Jugador", correo = user.email ?: "", rol = "Usuario")
+                }
+
+                    if (DatosRepository.usuarioActual?.rol == "Admin"){
+                        val intent = Intent(this, DiagnosticoPruebas::class.java)
+                        startActivity(intent)
+                        finish()
+                    }else{
+
+                        startActivity(Intent(this, PrincipalView::class.java))
+                        finish()
+                    }
+                }
+                .addOnFailureListener {
+
+                    //basico si es que falla
+                    DatosRepository.usuarioActual = Usuario(id = user.uid, nombre = "Jugador", correo = user.email ?: "", rol = "Usuario")
+                    startActivity(Intent(this, PrincipalView::class.java))
+                    finish()
+
+                }
         }
+
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,13 +126,6 @@ class MainActivity : AppCompatActivity() {
             val correotxt = correo.text.toString()
             val contratxt = contra.text.toString()
 
-            if (correotxt == "cakoelmejor@gmail.com" && contratxt == "Cako00" ){
-
-                val intent = Intent(this, DiagnosticoPruebas::class.java)
-                startActivity(intent)
-                return@setOnClickListener
-
-            }
 
             if (correotxt.isEmpty() || contratxt.isEmpty()){
                 Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -157,22 +182,56 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun ingresar(email: String, password: String) {
+        val btnIngresar = findViewById<Button>(R.id.btnIngresar)
+        btnIngresar.isEnabled = false
+        btnIngresar.text = "Iniciando..."
+
         firebaseAuth .signInWithEmailAndPassword(email, password)
+
         .addOnCompleteListener(this) { task ->
             if (task.isSuccessful) {
-            val user = firebaseAuth .currentUser
-                Toast.makeText(this, "¡Bienvenido!", Toast.LENGTH_SHORT).show()
 
-            val intent = Intent(this, PrincipalView::class.java)
-            startActivity(intent)
-                finish()
+                val user = firebaseAuth .currentUser
+
+                if(user != null){
+
+                    FirebaseFirestore.getInstance().collection("Usuarios").document(user.uid)
+                        .get()
+                        .addOnSuccessListener { documento ->
+
+                            if (documento.exists()){
+                                val miUsuario = documento.toObject(Usuario::class.java)
+                                DatosRepository.usuarioActual = miUsuario
+
+                                if (miUsuario?.rol == "Admin") {
+                                    Toast.makeText(this, "¡Bienvenido Administrador ${miUsuario.nombre}!", Toast.LENGTH_SHORT).show()
+                                    val intent = Intent(this, DiagnosticoPruebas::class.java)
+                                    startActivity(intent)
+                                    finish()
+
+                                } else {
+                                    Toast.makeText(this, "¡Bienvenido ${miUsuario?.nombre}!", Toast.LENGTH_SHORT).show()
+                                    val intent = Intent(this, PrincipalView::class.java)
+                                    startActivity(intent)
+                                    finish()
+                                }
+                            }
+
+                        }.addOnFailureListener {
+                            Toast.makeText(this, "Error al descargar perfil", Toast.LENGTH_SHORT).show()
+                            btnIngresar.isEnabled = true
+                            btnIngresar.text = "Ingresar"
+                        }
+                }
             } else {
                 val errorMensaje = when (task.exception){
                     is FirebaseAuthInvalidUserException -> "No existe cuenta con este correo"
                     is FirebaseAuthInvalidCredentialsException -> "la contraseña es incorrecta"
                     else -> "Error al iniciar sesion, compruebe conexion"
                 }
-            Toast.makeText(this, errorMensaje, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, errorMensaje, Toast.LENGTH_SHORT).show()
+                btnIngresar.isEnabled = true
+                btnIngresar.text = "Ingresar"
             }
         }
 

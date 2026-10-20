@@ -44,5 +44,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Obtener Token" />
+
+        <Button
+            android:id="@+id/btnSalirr"
+            android:layout_width="77dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end"
+            android:foreground="@android:drawable/btn_dialog"
+            android:text="Button"
+            tools:layout_editor_absoluteX="289dp"
+            tools:layout_editor_absoluteY="92dp" />
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

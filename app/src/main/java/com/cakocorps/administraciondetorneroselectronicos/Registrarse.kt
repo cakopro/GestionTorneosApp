@@ -16,11 +16,13 @@ import android.content.ContentValues.TAG
 import android.content.Intent
 import com.google.firebase.auth.auth
 import android.widget.Toast
+import com.google.firebase.firestore.FirebaseFirestore
 
 class Registrarse : AppCompatActivity() {
 
-    private lateinit var  firebaseAnalytics: FirebaseAnalytics
     private lateinit var firebaseAuth: FirebaseAuth
+
+    private val db = FirebaseFirestore.getInstance()
 
     private val TAG = "Registrarse"
 
@@ -33,7 +35,6 @@ class Registrarse : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        firebaseAnalytics = Firebase.analytics
         firebaseAuth = Firebase.auth
         // Instancia de FB Auth y Listener
         findViewById<Button>(R.id.btnRegistrarse).setOnClickListener { crearRegistro() }
@@ -42,10 +43,10 @@ class Registrarse : AppCompatActivity() {
     private fun crearRegistro() {
         val contra = findViewById<TextInputEditText>(R.id.idContra).text.toString().trim()
         val correo = findViewById<TextInputEditText>(R.id.idCorreo).text.toString().trim()
-
+        val nombre = findViewById<TextInputEditText>(R.id.idNombre).text.toString().trim()
 
         //validaciones
-        if (contra.isEmpty() || correo.isEmpty()){
+        if (contra.isEmpty() || correo.isEmpty() || nombre.isEmpty()){
             Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
             return
         }
@@ -55,25 +56,76 @@ class Registrarse : AppCompatActivity() {
             return
         }
 
+        val btnRegistrar = findViewById<Button>(R.id.btnRegistrarse)
+        btnRegistrar.isEnabled = false
+        btnRegistrar.text = "Verificando..."
 
-        firebaseAuth.createUserWithEmailAndPassword(correo, contra)
-        .addOnCompleteListener(this) { task ->
-            if (task.isSuccessful) {
 
-                val user = firebaseAuth.currentUser
-            Toast.makeText(this, "usuario ha sido creado", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, PrincipalView::class.java)
-                startActivity(intent)
-                finish()
+        db.collection("Usuarios")
+            .whereEqualTo("nombre",nombre)
+            .get()
+            .addOnSuccessListener { result ->
+                //buscar un igual si encuentra denegar poder hacer cuenta
+                if(!result.isEmpty){
 
-            } else {
-                val errorReal = task.exception?.message ?: "Error desconocido"
-                Toast.makeText(this, "Fallo: $errorReal", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "El nickname '$nombre' ya está en uso", Toast.LENGTH_SHORT).show()
+                    btnRegistrar.isEnabled = true
+                    btnRegistrar.text = "Registrarse"
+                }else{
+
+                    btnRegistrar.text = "Creando cuenta..."
+                    registrarEnAuthYFirestore(correo, contra, nombre, btnRegistrar)
+                }
+
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, "Error de red al verificar usuario", Toast.LENGTH_SHORT).show()
+                btnRegistrar.isEnabled = true
+                btnRegistrar.text = "Registrarse"
             }
 
-        }
     }
 
+    private fun  registrarEnAuthYFirestore(correo: String, contra: String, nombre: String, btnRegistrar: Button) {
+        firebaseAuth.createUserWithEmailAndPassword(correo, contra)
+            .addOnCompleteListener(this) { task ->
 
+            if (task.isSuccessful){
+                val user = firebaseAuth.currentUser
 
+                    if (user != null) {
+                        val usuario = Usuario(
+                            id = user.uid,
+                            nombre = nombre,
+                            correo = correo,
+                            rol = "Usuario"
+                        )
+
+                        db.collection("Usuarios").document(user.uid)
+                            .set(usuario)
+                            .addOnSuccessListener {
+                                Toast.makeText(this, "¡Usuario creado con éxito!", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(this, PrincipalView::class.java)
+                                DatosRepository.usuarioActual = usuario
+                                startActivity(intent)
+                                finish()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(this, "Error al guardar el perfil en la base de datos", Toast.LENGTH_SHORT).show()
+                                btnRegistrar.isEnabled = true
+                                btnRegistrar.text = "Registrarse"
+                            }
+                }
+
+            }else{
+                val errorReal = task.exception?.message ?: "Error desconocido"
+                Toast.makeText(this, "Fallo al crear cuenta: $errorReal", Toast.LENGTH_LONG).show()
+                btnRegistrar.isEnabled = true
+                btnRegistrar.text = "Registrarse" }
+            }
+
+    }
 }
+
+
+

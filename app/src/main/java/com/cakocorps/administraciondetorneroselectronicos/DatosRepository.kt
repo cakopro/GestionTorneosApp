@@ -27,4 +27,6 @@ object DatosRepository {
     var torneoSeleccionado: Torneo? = null
     var inscripcionAEditar: Inscripcion? = null
 
+    var usuarioActual: Usuario? = null
+
 }

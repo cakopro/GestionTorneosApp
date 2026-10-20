@@ -64,12 +64,23 @@ class InscripcionFormulario : Fragment() {
                 val juegoActual = DatosRepository.listaVideojuego.find { it.nombre == torneoSeleccionado.juego }
                 val totalJugadores = juegoActual?.jugadoresPorEquipo ?:1
 
-                val cantidadExtra = totalJugadores - 1
-
                 //recorrer parar crear los editText en base a la cantidad de jugadores
-                for (i in 1..cantidadExtra) {
+                for (i in 1..totalJugadores) {
                     val nuevoInput = android.widget.EditText(requireContext())
-                    nuevoInput.hint = "Nickname del compañero $i"
+
+
+                    if (i == 1){
+                        nuevoInput.hint = "1. Tu Nickname (Capitán)"
+
+                        if(inscripcionAEditar  == null){
+
+                            nuevoInput.setText(DatosRepository.usuarioActual?.nombre)
+                            nuevoInput.isEnabled = false
+                        }
+
+                    }else{
+                        nuevoInput.hint = "$i. Nickname del compañero ${i - 1}"
+                    }
 
                     val parametros = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -92,7 +103,11 @@ class InscripcionFormulario : Fragment() {
                 }
 
             }else {
-                participanteOEquipo.hint = "Ingrese su Nickname"
+                participanteOEquipo.hint = "Tu Nickname"
+                if (inscripcionAEditar == null) {
+                    participanteOEquipo.setText(DatosRepository.usuarioActual?.nombre)
+                    participanteOEquipo.isEnabled = false
+                }
 
             }
 
