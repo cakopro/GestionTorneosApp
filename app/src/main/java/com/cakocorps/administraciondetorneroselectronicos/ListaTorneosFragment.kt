@@ -7,11 +7,15 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
 import com.google.firebase.firestore.FirebaseFirestore
-
+import com.google.firebase.analytics.logEvent
 class ListaTorneosFragment : Fragment() {
 
     private val db = FirebaseFirestore.getInstance()
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -26,10 +30,16 @@ class ListaTorneosFragment : Fragment() {
         val rvTorneos = view.findViewById<RecyclerView>(R.id.rvTorneos)
         //como debe ordenarse
         rvTorneos.layoutManager = LinearLayoutManager(requireContext())
+        firebaseAnalytics = Firebase.analytics
 
         db.collection("Torneos")
             .get()
             .addOnSuccessListener { result ->
+
+                Firebase.analytics.logEvent("listado_consultado") {
+                    param("tipo_entidad", "Torneo")
+                }
+
                 val lista = mutableListOf<Torneo>()
                     for (document in result) {
                         val torneo = document.toObject(Torneo::class.java)

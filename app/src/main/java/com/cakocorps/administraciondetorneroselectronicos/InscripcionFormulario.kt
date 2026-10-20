@@ -9,6 +9,10 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
+import com.google.firebase.analytics.logEvent
 import com.google.firebase.firestore.FirebaseFirestore
 
 
@@ -16,6 +20,7 @@ class InscripcionFormulario : Fragment() {
 
 
     private val db = FirebaseFirestore.getInstance()
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,6 +50,9 @@ class InscripcionFormulario : Fragment() {
         val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
         val listaInputsExtra = mutableListOf<android.widget.EditText>()
+
+        firebaseAnalytics = Firebase.analytics
+
 
         if (torneoSeleccionado != null){
 
@@ -170,6 +178,19 @@ class InscripcionFormulario : Fragment() {
                 docRef.set(inscripcion)
                     .addOnSuccessListener {
                         Toast.makeText(requireContext(), "¡Inscripción guardada con éxito!", Toast.LENGTH_SHORT).show()
+
+                        if (inscripcionAEditar != null){
+                            firebaseAnalytics.logEvent("registro_actualizado"){
+                                param("tipo_entidad", "Inscripcion")
+                            }
+
+                        }else{
+                            firebaseAnalytics.logEvent("registro_creado"){
+                                param("tipo_entidad", "Inscripcion")
+                            }
+
+                        }
+
 
                         DatosRepository.inscripcionAEditar = null
                         requireActivity().supportFragmentManager.popBackStack()

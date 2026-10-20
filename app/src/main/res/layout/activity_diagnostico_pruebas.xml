@@ -26,21 +26,21 @@
             android:textSize="20sp" />
 
         <Button
-            android:id="@+id/button"
+            android:id="@+id/btnFatal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20sp"
             android:text="Provocar Cierre" />
 
         <Button
-            android:id="@+id/button4"
+            android:id="@+id/btnCrash"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20sp"
             android:text="Registrar Error" />
 
         <Button
-            android:id="@+id/button5"
+            android:id="@+id/btnToken"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Obtener Token" />

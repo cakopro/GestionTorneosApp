@@ -10,6 +10,10 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
+import com.google.firebase.analytics.logEvent
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlin.compareTo
 import java.text.SimpleDateFormat
@@ -18,6 +22,8 @@ import java.util.Locale
 class DetalleTorneoFragment : Fragment() {
 
     private val db = FirebaseFirestore.getInstance()
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -48,6 +54,9 @@ class DetalleTorneoFragment : Fragment() {
         val torneo = DatosRepository.torneoSeleccionado
         val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
+        firebaseAnalytics = Firebase.analytics
+
+
         if (torneo != null){
             tvNombre.text = torneo.nombre
             tvInfo.text = "Cargando información de cupos..."
@@ -58,6 +67,10 @@ class DetalleTorneoFragment : Fragment() {
                 .whereEqualTo("idTorneo",torneo.id)
                 .get()
                 .addOnSuccessListener { querySnapshot ->
+
+                    firebaseAnalytics.logEvent("listado_consultado"){
+                        param("tipo_entidad", "Inscripcion")
+                    }
 
                     val cantidadInscritos = querySnapshot.size()
                     var miInscripcion: Inscripcion? = null
@@ -138,6 +151,11 @@ class DetalleTorneoFragment : Fragment() {
                                         .addOnSuccessListener {
                                             Toast.makeText(requireContext(), "Torneo eliminado correctamente",
                                                 Toast.LENGTH_SHORT).show()
+
+                                            firebaseAnalytics.logEvent("registro_eliminado"){
+                                                param("tipo_entidad", "Torneo")
+                                            }
+
                                             requireActivity().supportFragmentManager.popBackStack()
                                         }
                                     dialog.dismiss()
@@ -190,6 +208,11 @@ class DetalleTorneoFragment : Fragment() {
                                             .addOnSuccessListener {
                                                 Toast.makeText(requireContext(), "Has salido del torneo",
                                                     Toast.LENGTH_SHORT).show()
+
+                                                firebaseAnalytics.logEvent("registro_eliminado"){
+                                                    param("tipo_entidad", "Inscripcion")
+                                                }
+
                                                 requireActivity().supportFragmentManager.popBackStack()
 
                                             }

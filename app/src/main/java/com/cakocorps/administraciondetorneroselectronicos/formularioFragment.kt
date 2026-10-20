@@ -15,16 +15,21 @@ import android.widget.TextView
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
 import com.google.firebase.firestore.FirebaseFirestore
 import java.lang.String.format
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.cos
 import java.text.SimpleDateFormat
+import com.google.firebase.analytics.logEvent
 
 class formularioFragment : Fragment() {
 
     private val db = FirebaseFirestore.getInstance()
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
 
 
     override fun onCreateView(
@@ -81,6 +86,8 @@ class formularioFragment : Fragment() {
         spinnerJuegos.adapter = adaptadorJuegos
 
         var esPrimeraCargaJuegos = true
+
+        firebaseAnalytics = Firebase.analytics
 
         //encargado de al tocar un juego cargar los otros spinner con datos de ese juego
         spinnerJuegos.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -273,6 +280,18 @@ class formularioFragment : Fragment() {
                 .addOnSuccessListener {
                     val msj = if (torneoAEditar != null) "Torneo actualizado" else "¡Torneo creado con éxito!"
                     Toast.makeText(requireContext(), msj, Toast.LENGTH_SHORT).show()
+
+                    if (torneoAEditar != null){
+                        firebaseAnalytics.logEvent("registro_actualizado"){
+                            param("tipo_entidad", "Torneo")
+                        }
+
+                    }else{
+                        firebaseAnalytics.logEvent("registro_creado"){
+                            param("tipo_entidad", "Torneo")
+                        }
+
+                    }
 
                     // Limpiar selección previa
                     DatosRepository.torneoSeleccionado = null
