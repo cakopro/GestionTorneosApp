@@ -105,8 +105,7 @@ class Registrarse : AppCompatActivity() {
                             .set(usuario)
                             .addOnSuccessListener {
                                 Toast.makeText(this, "¡Usuario creado con éxito!", Toast.LENGTH_SHORT).show()
-                                val intent = Intent(this, PrincipalView::class.java)
-                                DatosRepository.usuarioActual = usuario
+                                val intent = Intent(this, MainActivity::class.java)
                                 startActivity(intent)
                                 finish()
                             }

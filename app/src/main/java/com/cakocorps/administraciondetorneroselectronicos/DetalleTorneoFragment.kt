@@ -91,8 +91,8 @@ class DetalleTorneoFragment : Fragment() {
                 Premio: ${torneo.recompensa}
                 Cupos: $cantidadInscritos / ${torneo.cupos}
                 
-                Apertura: ${'$'}{torneo.fechaInscripcion}
-                Cierre: ${'$'}{torneo.fechaCierre}
+                Apertura: ${torneo.fechaInscripcion}
+                Cierre: ${torneo.fechaCierre}
                 
                 Reglas:
                 ${torneo.reglas}
@@ -106,7 +106,8 @@ class DetalleTorneoFragment : Fragment() {
                                 val inscripcion = doc.toObject(Inscripcion::class.java)
 
                                 val texto = if (inscripcion?.esEquipo == true) {
-                                    "Equipo: ${inscripcion.nombreEquipo} (${inscripcion.integrantes.size} miembros)"
+                                    val miembros = inscripcion.integrantes.joinToString(separator = "\n   - ")
+                                    "Equipo: ${inscripcion.nombreEquipo}\n   - $miembros"
                                 } else {
                                     inscripcion?.nombreEquipo ?: "Participante Desconocido"
                                 }

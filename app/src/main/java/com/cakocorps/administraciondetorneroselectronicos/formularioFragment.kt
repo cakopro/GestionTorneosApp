@@ -294,7 +294,7 @@ class formularioFragment : Fragment() {
                     }
 
                     // Limpiar selección previa
-                    DatosRepository.torneoSeleccionado = null
+                    DatosRepository.torneoSeleccionado = actualizadoTorneo
                     requireActivity().supportFragmentManager.popBackStack()
                 }
                 .addOnFailureListener { e ->
