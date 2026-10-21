@@ -62,23 +62,26 @@ class InscripcionFormulario : Fragment() {
 
             if (inscripcionAEditar != null) {
                 btnGuardar.text = "Actualizar Inscripción"
-                participanteOEquipo.setText(inscripcionAEditar.nombreEquipo)
-                contacto.setText(inscripcionAEditar.contactoLider)
             } else {
                 btnGuardar.text = "Confirmar Inscripción"
-
-                val userEmail = FirebaseAuth.getInstance().currentUser?.email
-                if (userEmail != null) {
-                    contacto.setText(userEmail)
-                    contacto.isEnabled = false
-                }
             }
+
+            //bloquear correo de CONTACTO
+            val userEmail = FirebaseAuth.getInstance().currentUser?.email
+            contacto.setText(inscripcionAEditar?.contactoLider ?: userEmail)
+            contacto.isEnabled = false
 
 
             if (torneoSeleccionado.modalidad == "Equipos") {
 
+                //nombre equipos si se puede editrar en equipos
                 participanteOEquipo.hint = "Nombre del Equipo"
-                //buscar juego y su total de jugadores, descontar uno ya que el lider se esta inscribiendo
+                participanteOEquipo.isEnabled = true
+                if (inscripcionAEditar != null) {
+                    participanteOEquipo.setText(inscripcionAEditar.nombreEquipo)
+                }
+
+                //buscar juego y su total de jugadores
                 val juegoActual =
                     DatosRepository.listaVideojuego.find { it.nombre == torneoSeleccionado.juego }
                 val totalJugadores = juegoActual?.jugadoresPorEquipo ?: 1
@@ -90,15 +93,19 @@ class InscripcionFormulario : Fragment() {
 
                     if (i == 1) {
                         nuevoInput.hint = "1. Tu Nickname (Capitán)"
-
-                        if (inscripcionAEditar == null) {
-
-                            nuevoInput.setText(DatosRepository.usuarioActual?.nombre)
-                            nuevoInput.isEnabled = false
-                        }
+                        nuevoInput.setText(DatosRepository.usuarioActual?.nombre)
+                        nuevoInput.isEnabled = false
 
                     } else {
                         nuevoInput.hint = "$i. Nickname del compañero ${i - 1}"
+                        nuevoInput.isEnabled = true
+
+                        if (inscripcionAEditar != null) {
+                            val indexIntegrante = i - 1 // i - 1 coincide con la lista de integrantes extra
+                            if (indexIntegrante < inscripcionAEditar.integrantes.size) {
+                                nuevoInput.setText(inscripcionAEditar.integrantes[indexIntegrante])
+                            }
+                        }
                     }
 
                     val parametros = LinearLayout.LayoutParams(
@@ -110,23 +117,14 @@ class InscripcionFormulario : Fragment() {
                     nuevoInput.setPadding(30, 40, 30, 40)
                     nuevoInput.setBackgroundResource(android.R.drawable.edit_text)
 
-                    if (inscripcionAEditar != null) {
-
-                        if (inscripcionAEditar.integrantes.size >= i) {
-
-                            nuevoInput.setText(inscripcionAEditar.integrantes[i - 1])
-                        }
-                    }
                     contenedorJugadoresExtra.addView(nuevoInput)
                     listaInputsExtra.add(nuevoInput)
                 }
 
             } else {
                 participanteOEquipo.hint = "Tu Nickname"
-                if (inscripcionAEditar == null) {
-                    participanteOEquipo.setText(DatosRepository.usuarioActual?.nombre)
-                    participanteOEquipo.isEnabled = false
-                }
+                participanteOEquipo.setText(DatosRepository.usuarioActual?.nombre)
+                participanteOEquipo.isEnabled = false
 
             }
 
@@ -160,6 +158,7 @@ class InscripcionFormulario : Fragment() {
                 val nombresAInscribir = mutableListOf<String>()
                 nombresAInscribir.add(nombrePrincipal)
                 val esEquipo = torneoSeleccionado.modalidad == "Equipos"
+
                 //si es equipo extraer la lista de los miembros.
                 if (esEquipo) {
                     for (inputExtra in listaInputsExtra) {
@@ -178,6 +177,8 @@ class InscripcionFormulario : Fragment() {
 
                 btnGuardar.isEnabled = false
                 btnGuardar.text = "Guardando..."
+
+
 
 
                 val docRef = if (inscripcionAEditar != null) {
@@ -237,30 +238,67 @@ class InscripcionFormulario : Fragment() {
 
                 }
 
-                if (inscripcionAEditar == null) {
-                    db.collection("Inscripciones")
-                        .whereEqualTo("idTorneo", torneoSeleccionado.id)
-                        .whereEqualTo("idUsuario", idUsuarioActual)
-                        .get()
-                        .addOnSuccessListener { querySnapshot ->
-                            if (!querySnapshot.isEmpty) {
-                                // Si encuentra algo, significa que ya está inscrito
+                db.collection("Inscripciones")
+                    .whereEqualTo("idTorneo", torneoSeleccionado.id)
+                    .get()
+                    .addOnSuccessListener { querySnapshot ->
+                        val nombresOcupados = mutableSetOf<String>()
+                        val miNombreOficial = DatosRepository.usuarioActual?.nombre?.trim()?.lowercase() ?: ""
+
+                        // Recopilar todos los nombres de los otros equipos
+                        for (document in querySnapshot) {
+                            val idUsuarioInscrito = document.getString("idUsuario") ?: ""
+
+                            // Ignorar la propia inscripción si se está editando o si ya estoy inscrito
+                            if ((inscripcionAEditar != null && document.id == inscripcionAEditar.idInscripcion) || idUsuarioInscrito == idUsuarioActual) {
+                                continue
+                            }
+
+                            val equipo = document.getString("nombreEquipo") ?: ""
+                            if (equipo.isNotBlank()) nombresOcupados.add(equipo.trim().lowercase())
+
+                            val integrantesRegistrados = document.get("integrantes") as? List<String> ?: listOf()
+                            for (integrante in integrantesRegistrados) {
+                                if (integrante.isNotBlank()) {
+                                    val integranteLower = integrante.trim().lowercase()
+                                    if (integranteLower != miNombreOficial) {
+                                        nombresOcupados.add(integranteLower)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Verificar si choco con alguien
+                        val nombreRepetidoEnTorneo = nombresAInscribir.find { nuevoNombre ->
+                            nombresOcupados.contains(nuevoNombre.trim().lowercase())
+                        }
+
+                        if (nombreRepetidoEnTorneo != null) {
+                            Toast.makeText(requireContext(), "El nickname '$nombreRepetidoEnTorneo' ya está registrado en este torneo.", Toast.LENGTH_LONG).show()
+                            btnGuardar.isEnabled = true
+                            btnGuardar.text = if (inscripcionAEditar != null) "Actualizar Inscripción" else "Confirmar Inscripción"
+                            return@addOnSuccessListener // Abortar guardado
+                        }
+
+                        // Verificar si ya envió formulario antes (solo si es nuevo)
+                        if (inscripcionAEditar == null) {
+                            val yaInscrito = querySnapshot.documents.any { it.getString("idUsuario") == idUsuarioActual }
+                            if (yaInscrito) {
                                 Toast.makeText(requireContext(), "Ya estás inscrito en este torneo.", Toast.LENGTH_LONG).show()
                                 btnGuardar.isEnabled = true
                                 btnGuardar.text = "Confirmar Inscripción"
-                            } else {
-                                ejecutarGuardado()
+                                return@addOnSuccessListener // Abortar guardado
                             }
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(requireContext(), "Error al verificar inscripción previa", Toast.LENGTH_SHORT).show()
-                            btnGuardar.isEnabled = true
-                            btnGuardar.text = "Confirmar Inscripción"
-                        }
-                } else {
-                    // Si solo está actualizando sus datos, guardamos directo
-                    ejecutarGuardado()
-                }
+
+                        // 4. SI TODO SALIÓ BIEN Y NO HAY DUPLICADOS
+                        ejecutarGuardado()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(requireContext(), "Error al verificar disponibilidad en el torneo", Toast.LENGTH_SHORT).show()
+                        btnGuardar.isEnabled = true
+                        btnGuardar.text = if (inscripcionAEditar != null) "Actualizar Inscripción" else "Confirmar Inscripción"
+                    }
 
 
             }

@@ -104,6 +104,7 @@ class Registrarse : AppCompatActivity() {
                         db.collection("Usuarios").document(user.uid)
                             .set(usuario)
                             .addOnSuccessListener {
+                                firebaseAuth.signOut()
                                 Toast.makeText(this, "¡Usuario creado con éxito!", Toast.LENGTH_SHORT).show()
                                 val intent = Intent(this, MainActivity::class.java)
                                 startActivity(intent)

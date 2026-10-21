@@ -112,6 +112,8 @@ class DetalleTorneoFragment : Fragment() {
                                     inscripcion?.nombreEquipo ?: "Participante Desconocido"
                                 }
                                 "${index + 1}. $texto"
+                                "--------------------------------------------------\n${index + 1}. " +
+                                        "$texto\n--------------------------------------------------"
                             }.toTypedArray()
 
                             AlertDialog.Builder(requireContext())
