@@ -23,7 +23,8 @@ class MisTorneosFragment : Fragment() {
         //convertir archivo en objeto mani
         val view = inflater.inflate(R.layout.fragment_mis_torneos, container, false)
         val boton = view.findViewById<FloatingActionButton>(R.id.bntFlotante)
-        val rvMisTorneos = view.findViewById<RecyclerView>(R.id.rvMisTorneos)
+        val rvTorneosCreados = view.findViewById<RecyclerView>(R.id.rvTorneosCreados)
+        val rvTorneosInscritos = view.findViewById<RecyclerView>(R.id.rvTorneosInscritos)
 
         //buscar mi id
         val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -42,21 +43,32 @@ class MisTorneosFragment : Fragment() {
                 db.collection("Torneos")
                     .get()
                     .addOnSuccessListener { result ->
-                        val lista = mutableListOf<Torneo>()
+                        val listaCreados = mutableListOf<Torneo>()
+                        val listaInscritos = mutableListOf<Torneo>()
                         for (document in result) {
                             val torneo = document.toObject(Torneo::class.java)
 
                             torneo.id = document.id
 
-                            if (torneo.idCreador == idUsuarioActual || misTorneosInscritosIds.contains(torneo.id)) {
-                                lista.add(torneo)
+                            if (torneo.idCreador == idUsuarioActual) {
+                                listaCreados.add(torneo)
+                            } else if (misTorneosInscritosIds.contains(torneo.id)) {
+                                listaInscritos.add(torneo)
                             }
                         }
                         //vuelve a rellenar el recicle pero solo con los datos filtrados
-                        rvMisTorneos.layoutManager = LinearLayoutManager(requireContext())
-                        rvMisTorneos.adapter = TorneoAdapter(lista) { torneoSeleccionado ->
+                        rvTorneosCreados.layoutManager = LinearLayoutManager(requireContext())
+                        rvTorneosCreados.adapter = TorneoAdapter(listaCreados) { torneoSeleccionado ->
+                            DatosRepository.torneoSeleccionado = torneoSeleccionado
+                            requireActivity().supportFragmentManager.beginTransaction()
+                                .replace(R.id.fragment_container, DetalleTorneoFragment())
+                                .addToBackStack(null)
+                                .commit()
+                        }
 
                             //que pasa cuando toca cardview, guarda torneo  para luego cargar los datos
+                        rvTorneosInscritos.layoutManager = LinearLayoutManager(requireContext())
+                        rvTorneosInscritos.adapter = TorneoAdapter(listaInscritos) { torneoSeleccionado ->
                             DatosRepository.torneoSeleccionado = torneoSeleccionado
                             requireActivity().supportFragmentManager.beginTransaction()
                                 .replace(R.id.fragment_container, DetalleTorneoFragment())

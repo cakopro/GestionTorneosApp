@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.analytics
@@ -36,22 +37,17 @@ class InscripcionFormulario : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
 
+        val tilNombreEquipo = view.findViewById<TextInputLayout>(R.id.tilNombreEquipo)
+        val txtNombreEquipo = view.findViewById<TextInputEditText>(R.id.txtNombreEquipo)
+        val tilParticipanteOEquipo = view.findViewById<TextInputLayout>(R.id.tilParticipanteOEquipo)
         val participanteOEquipo = view.findViewById<TextInputEditText>(R.id.txtParticipanteOEquipo)
-
         val contacto = view.findViewById<TextInputEditText>(R.id.txtContactoLider)
-
         val btnGuardar = view.findViewById<Button>(R.id.btnConfirmarInscripcion)
+        val contenedorJugadoresExtra = view.findViewById<LinearLayout>(R.id.contenedorJugadoresExtra)
 
-        val contenedorJugadoresExtra =
-            view.findViewById<LinearLayout>(R.id.contenedorJugadoresExtra)
-
-        //manipular los if
         val torneoSeleccionado = DatosRepository.torneoSeleccionado
-
         val inscripcionAEditar = DatosRepository.inscripcionAEditar
-
-        val idUsuarioActual =
-            com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        val idUsuarioActual = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
         val listaInputsExtra = mutableListOf<android.widget.EditText>()
 
@@ -71,37 +67,36 @@ class InscripcionFormulario : Fragment() {
             contacto.setText(inscripcionAEditar?.contactoLider ?: userEmail)
             contacto.isEnabled = false
 
+            val esEquipo = torneoSeleccionado.modalidad == "Equipos"
+            val nombreUsuarioActual = DatosRepository.usuarioActual?.nombre ?: "Usuario"
 
-            if (torneoSeleccionado.modalidad == "Equipos") {
 
-                //nombre equipos si se puede editrar en equipos
-                participanteOEquipo.hint = "Nombre del Equipo"
+            if (esEquipo) {
+                tilNombreEquipo?.visibility = View.GONE
+
+                tilParticipanteOEquipo.hint = "Nombre de Equipo"
                 participanteOEquipo.isEnabled = true
+                participanteOEquipo.visibility = View.VISIBLE
                 if (inscripcionAEditar != null) {
                     participanteOEquipo.setText(inscripcionAEditar.nombreEquipo)
                 }
 
-                //buscar juego y su total de jugadores
-                val juegoActual =
-                    DatosRepository.listaVideojuego.find { it.nombre == torneoSeleccionado.juego }
+                val juegoActual = DatosRepository.listaVideojuego.find { it.nombre == torneoSeleccionado.juego }
                 val totalJugadores = juegoActual?.jugadoresPorEquipo ?: 1
 
-                //recorrer parar crear los editText en base a la cantidad de jugadores
                 for (i in 1..totalJugadores) {
                     val nuevoInput = android.widget.EditText(requireContext())
 
-
                     if (i == 1) {
                         nuevoInput.hint = "1. Tu Nickname (Capitán)"
-                        nuevoInput.setText(DatosRepository.usuarioActual?.nombre)
+                        nuevoInput.setText(nombreUsuarioActual)
                         nuevoInput.isEnabled = false
-
                     } else {
                         nuevoInput.hint = "$i. Nickname del compañero ${i - 1}"
                         nuevoInput.isEnabled = true
 
                         if (inscripcionAEditar != null) {
-                            val indexIntegrante = i - 1 // i - 1 coincide con la lista de integrantes extra
+                            val indexIntegrante = i - 1
                             if (indexIntegrante < inscripcionAEditar.integrantes.size) {
                                 nuevoInput.setText(inscripcionAEditar.integrantes[indexIntegrante])
                             }
@@ -122,44 +117,42 @@ class InscripcionFormulario : Fragment() {
                 }
 
             } else {
-                participanteOEquipo.hint = "Tu Nickname"
-                participanteOEquipo.setText(DatosRepository.usuarioActual?.nombre)
-                participanteOEquipo.isEnabled = false
+                tilNombreEquipo?.visibility = View.VISIBLE
+                txtNombreEquipo.isEnabled = true
+                txtNombreEquipo.hint = "Nick dentro del juego"
+                if (inscripcionAEditar != null) {
+                    txtNombreEquipo.setText(inscripcionAEditar.nombreEquipo)
+                }
 
+                tilParticipanteOEquipo.hint = "Nombre De Usuario"
+                participanteOEquipo.visibility = View.VISIBLE
+                participanteOEquipo.setText(nombreUsuarioActual)
+                participanteOEquipo.isEnabled = false
+                participanteOEquipo.focusable = View.NOT_FOCUSABLE
             }
 
 
             btnGuardar.setOnClickListener {
 
-                val nombrePrincipal = participanteOEquipo.text.toString().trim()
+                val nombrePrincipal = if (esEquipo) participanteOEquipo.text.toString().trim() else nombreUsuarioActual
+                val nombreEquipoStr = if (esEquipo) participanteOEquipo.text.toString().trim() else txtNombreEquipo.text.toString().trim()
                 val contactoLider = contacto.text.toString().trim()
 
-                if (nombrePrincipal.isEmpty() || contactoLider.isEmpty()) {
 
-                    Toast.makeText(
-                        requireContext(), "Debe rellenar todos los campos.",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                if (nombreEquipoStr.isEmpty() || contactoLider.isEmpty()) {
+                    Toast.makeText(requireContext(), "Debe rellenar todos los campos.", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
-
                 }
 
                 if (!Patterns.EMAIL_ADDRESS.matcher(contactoLider).matches()) {
                     contacto.error = "Ingrese un correo electrónico válido"
-                    Toast.makeText(
-                        requireContext(),
-                        "El correo de contacto no es válido.",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(requireContext(), "El correo de contacto no es válido.", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
-
                 val nombresAInscribir = mutableListOf<String>()
                 nombresAInscribir.add(nombrePrincipal)
-                val esEquipo = torneoSeleccionado.modalidad == "Equipos"
 
-                //si es equipo extraer la lista de los miembros.
                 if (esEquipo) {
                     for (inputExtra in listaInputsExtra) {
                         val nombreCompleto = inputExtra.text.toString().trim()

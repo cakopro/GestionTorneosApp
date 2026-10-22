@@ -46,23 +46,45 @@
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
+                    <!-- CAMPO: Nombre de Equipo (Editable para Individual) -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilNombreEquipo"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
+                        android:layout_marginBottom="12dp"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
-                        app:boxCornerRadiusTopStart="12dp"
-                        >
+                        app:boxCornerRadiusTopStart="12dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/txtNombreEquipo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Nombre de Equipo" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- CAMPO: Nombre de Usuario / Participante -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilParticipanteOEquipo"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginBottom="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusTopStart="12dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/txtParticipanteOEquipo"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Nombre Equipo" />
+                            android:hint="Nombre De Usuario" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- CAMPO: Contacto -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -91,7 +113,6 @@
             </androidx.cardview.widget.CardView>
 
             <Button
-
                 android:id="@+id/btnConfirmarInscripcion"
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
