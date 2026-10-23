@@ -100,27 +100,55 @@ class DetalleTorneoFragment : Fragment() {
 
                     btnParticipantes.setOnClickListener {
                         if (querySnapshot.isEmpty) {
-                            Toast.makeText(requireContext(), "No hay participantes inscritos aún", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                requireContext(),
+                                "No hay participantes inscritos aún",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
-                            val listaParticipantes = querySnapshot.documents.mapIndexed { index, doc ->
-                                val inscripcion = doc.toObject(Inscripcion::class.java)
+                            //  Consultar todos los usuarios registrados para obtener sus nombres reales
+                            db.collection("Usuarios")
+                                .get()
+                                .addOnSuccessListener { usuariosSnapshot ->
+                                    // Crear un mapa con [idUsuario -> nombre]
+                                    val mapaUsuarios = usuariosSnapshot.documents.associate { doc ->
+                                        doc.id to (doc.getString("nombre") ?: "Usuario")
+                                    }
 
-                                val texto = if (inscripcion?.esEquipo == true) {
-                                    val miembros = inscripcion.integrantes.joinToString(separator = "\n")
-                                    "Equipo: ${inscripcion.nombreEquipo}\n$miembros"
-                                } else {
-                                    inscripcion?.nombreEquipo ?: "Participante Desconocido"
+                                    val listaParticipantes =
+                                        querySnapshot.documents.mapIndexed { index, doc ->
+                                            val inscripcion = doc.toObject(Inscripcion::class.java)
+
+                                            val texto = if (inscripcion?.esEquipo == true) {
+                                                // Modo Grupos (se mantiene intacto)
+                                                val miembros =
+                                                    inscripcion.integrantes.joinToString(separator = "\n")
+                                                "Equipo: ${inscripcion.nombreEquipo}\n$miembros"
+                                            } else {
+                                                // Modo Individual: Obtener el nombre del usuario usando su idUsuario
+                                                val nombreUsuarioReal =
+                                                    mapaUsuarios[inscripcion?.idUsuario]
+                                                        ?: "Participante Desconocido"
+                                                "Nombre Equipo: ${inscripcion?.nombreEquipo}\nUsuario: $nombreUsuarioReal"
+                                            }
+
+                                            "--------------------------------------------------\n${index + 1}. " +
+                                                    "$texto\n--------------------------------------------------"
+                                        }.toTypedArray()
+
+                                    AlertDialog.Builder(requireContext())
+                                        .setTitle("Participantes (${querySnapshot.size()})")
+                                        .setItems(listaParticipantes, null)
+                                        .setPositiveButton("Cerrar", null)
+                                        .show()
                                 }
-                                "${index + 1}. $texto"
-                                "--------------------------------------------------\n${index + 1}. " +
-                                        "$texto\n--------------------------------------------------"
-                            }.toTypedArray()
-
-                            AlertDialog.Builder(requireContext())
-                                .setTitle("Participantes (${querySnapshot.size()})")
-                                .setItems(listaParticipantes, null)
-                                .setPositiveButton("Cerrar", null)
-                                .show()
+                                .addOnFailureListener {
+                                    Toast.makeText(
+                                        requireContext(),
+                                        "Error al cargar la lista de usuarios",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                         }
                     }
 

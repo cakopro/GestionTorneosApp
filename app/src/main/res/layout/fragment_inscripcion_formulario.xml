@@ -97,7 +97,7 @@
                             android:id="@+id/txtContactoLider"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Contacto: gmail, " />
+                            android:hint="Contacto: gmail" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 

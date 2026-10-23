@@ -119,7 +119,8 @@ class InscripcionFormulario : Fragment() {
             } else {
                 tilNombreEquipo?.visibility = View.VISIBLE
                 txtNombreEquipo.isEnabled = true
-                txtNombreEquipo.hint = "Nick dentro del juego"
+                tilNombreEquipo?.hint = "Nick dentro del juego"
+                txtNombreEquipo.hint = ""
                 if (inscripcionAEditar != null) {
                     txtNombreEquipo.setText(inscripcionAEditar.nombreEquipo)
                 }
@@ -144,6 +145,11 @@ class InscripcionFormulario : Fragment() {
                     return@setOnClickListener
                 }
 
+                if (nombreEquipoStr.length > 20) {
+                    Toast.makeText(requireContext(), "El nombre de equipo no puede superar los 20 caracteres.", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+
                 if (!Patterns.EMAIL_ADDRESS.matcher(contactoLider).matches()) {
                     contacto.error = "Ingrese un correo electrónico válido"
                     Toast.makeText(requireContext(), "El correo de contacto no es válido.", Toast.LENGTH_SHORT).show()
@@ -160,6 +166,12 @@ class InscripcionFormulario : Fragment() {
                             Toast.makeText(requireContext(), "Debe rellenar todos los campos de los integrantes.", Toast.LENGTH_SHORT).show()
                             return@setOnClickListener
                         }
+
+                        if (nombreCompleto.length > 20) {
+                            Toast.makeText(requireContext(), "El nickname '$nombreCompleto' supera los 20 caracteres.", Toast.LENGTH_LONG).show()
+                            return@setOnClickListener
+                        }
+
                         if (nombresAInscribir.contains(nombreCompleto)) {
                             Toast.makeText(requireContext(), "Hay nombres duplicados en tu equipo: $nombreCompleto", Toast.LENGTH_SHORT).show()
                             return@setOnClickListener

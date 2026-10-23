@@ -161,7 +161,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
-
+//Google
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         firebaseAuth.signInWithCredential(credential)
