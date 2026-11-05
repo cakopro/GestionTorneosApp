@@ -119,6 +119,7 @@
                 android:backgroundTint="@android:color/holo_blue_bright"
                 android:text="Google"
                 android:textColor="#FFFFFF"
+                android:visibility="visible"
                 app:icon="@drawable/iconorigingoole"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp"

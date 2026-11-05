@@ -12,8 +12,6 @@ data class Torneo(
     val fechaCierre: String = "",
     val fechaInicio: String = "",
     val tipoEntrada: String = "",
-    val costoEntrada: Double = 0.0,
-    val recompensa: String = "",
     val reglas: String = "",
     val idCreador: String = "",
     val estado: String = "abierto"

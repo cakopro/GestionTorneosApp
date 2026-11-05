@@ -58,11 +58,6 @@ class formularioFragment : Fragment() {
         val cierreInscripcion = view.findViewById<TextInputEditText>(R.id.edtCierre)
         val inicioTorneo = view.findViewById<TextInputEditText>(R.id.edtInicio)
 
-        //tercer card dinero
-        val entrada = view.findViewById<Spinner>(R.id.spnEntrada)
-        val costoEntrada = view.findViewById<TextInputEditText>(R.id.etCostoEntrada)
-        val recompensa = view.findViewById<TextInputEditText>(R.id.etPremio)
-        val tilCostoEntrada = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilCostoEntrada)
 
         // ultima card y boton
         val formato = view.findViewById<TextView>(R.id.formato)
@@ -70,14 +65,9 @@ class formularioFragment : Fragment() {
         val boton = view.findViewById<Button>(R.id.btnGuardar)
 
         //listas
-        val listaTipoEntrada = arrayOf("Gratuita", "De Pago")
         val listaFormato = arrayOf("Play offs", "Fase de grupos")
         val listaVideojuegos = DatosRepository.listaVideojuego
         val nombresJuegos = listaVideojuegos.map{it.nombre}
-
-        //spinner
-        val adaptadorEntrada = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, listaTipoEntrada)
-        entrada.adapter = adaptadorEntrada
 
         val adaptadorFormato = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, listaFormato)
         spinnerFormato.adapter = adaptadorFormato
@@ -131,20 +121,7 @@ class formularioFragment : Fragment() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        //entrada gratis -> no debe cobrar por entrar
-        entrada.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (listaTipoEntrada[position] == "Gratuita"){
-                    costoEntrada.isEnabled = false
-                    costoEntrada.setText("")
-                    tilCostoEntrada.hint = "Entrada Gratis"
-                }else{
-                    costoEntrada.isEnabled = true
-                    tilCostoEntrada.hint = "Costo de entrada por persona/equipo:"
-                }
-            }override fun onNothingSelected(parent: AdapterView<*>?) {}
 
-        }
 
         //fechas
         inscripcion.isFocusable = false
@@ -191,12 +168,7 @@ class formularioFragment : Fragment() {
             cierreInscripcion.setText(torneoAEditar.fechaCierre)
             inicioTorneo.setText(torneoAEditar.fechaInicio)
             cupos.text = torneoAEditar.cupos.toString()
-            if (torneoAEditar.costoEntrada > 0) costoEntrada.setText(torneoAEditar.costoEntrada.toString())
-            recompensa.setText(torneoAEditar.recompensa)
-            reglas.setText(torneoAEditar.reglas)
 
-            val posEntrada = listaTipoEntrada.indexOf(torneoAEditar.tipoEntrada)
-            if (posEntrada >= 0) entrada.setSelection(posEntrada)
 
             val posFormato = listaFormato.indexOf(torneoAEditar.formato)
             if (posFormato >= 0) spinnerFormato.setSelection(posFormato)
@@ -211,8 +183,7 @@ class formularioFragment : Fragment() {
             val txtInscripcion = inscripcion.text.toString().trim()
             val txtCierre = cierreInscripcion.text.toString().trim()
             val txtInicio = inicioTorneo.text.toString().trim()
-            val txtCosto = costoEntrada.text.toString().trim()
-            val txtPremio = recompensa.text.toString().trim()
+
             val txtReglas = reglas.text.toString().trim()
             val numeroCupos = cupos.text.toString().toIntOrNull() ?:16
 
@@ -220,24 +191,13 @@ class formularioFragment : Fragment() {
             val dispositivo = spinnerDispositivos.selectedItem?.toString() ?: ""
             val modalidad = spinnerModalidad.selectedItem?.toString() ?: ""
             val formatoElegido = spinnerFormato.selectedItem?.toString() ?: ""
-            val tipoEntrada = entrada.selectedItem?.toString() ?: ""
-
-            val requiereCosto = tipoEntrada == "De Pago"
 
 
-            if (nombre.isEmpty() || txtInscripcion.isEmpty() || txtCierre.isEmpty() || txtInicio.isEmpty() ||
-                txtPremio.isEmpty() || txtReglas.isEmpty() || (requiereCosto && txtCosto.isEmpty() )){
+
+
+            if (nombre.isEmpty() || txtInscripcion.isEmpty() || txtCierre.isEmpty() || txtInicio.isEmpty()){
 
                 Toast.makeText(requireContext(), "Debe rellenar todos los campos",
-                    Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val costoNum = txtCosto.toDoubleOrNull() ?: 0.0
-
-            //valida costo negativo
-            if (costoNum < 0){
-                Toast.makeText(requireContext(), "El costo debe ser un numero positivo.",
                     Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -267,9 +227,6 @@ class formularioFragment : Fragment() {
                 fechaInscripcion = txtInscripcion,
                 fechaCierre = txtCierre,
                 fechaInicio = txtInicio,
-                tipoEntrada = tipoEntrada,
-                costoEntrada = costoNum,
-                recompensa = txtPremio,
                 reglas = txtReglas,
                 idCreador = torneoAEditar?.idCreador ?: miUid,
                 estado = "abierto"

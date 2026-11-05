@@ -87,8 +87,6 @@ class DetalleTorneoFragment : Fragment() {
                     tvInfo.text = """
                 Juego: ${torneo.juego} (${torneo.dispositivo})
                 Modalidad: ${torneo.modalidad} | Formato: ${torneo.formato}
-                Entrada: ${torneo.tipoEntrada} ($${torneo.costoEntrada})
-                Premio: ${torneo.recompensa}
                 Cupos: $cantidadInscritos / ${torneo.cupos}
                 
                 Apertura: ${torneo.fechaInscripcion}
