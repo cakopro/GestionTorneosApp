@@ -78,22 +78,16 @@ class MainActivity : AppCompatActivity() {
                 .get()
                 .addOnSuccessListener { documento ->
 
-                if (documento.exists()) {
-                    DatosRepository.usuarioActual = documento.toObject(Usuario::class.java)
-                } else {
-                    //por si no tiene documento
-                    DatosRepository.usuarioActual = Usuario(id = user.uid, nombre = "Jugador", correo = user.email ?: "", rol = "Usuario")
-                }
-
-                    if (DatosRepository.usuarioActual?.rol == "Admin"){
-                        val intent = Intent(this, DiagnosticoPruebas::class.java)
-                        startActivity(intent)
-                        finish()
-                    }else{
-
-                        startActivity(Intent(this, PrincipalView::class.java))
-                        finish()
+                    if (documento.exists()) {
+                        DatosRepository.usuarioActual = documento.toObject(Usuario::class.java)
+                    } else {
+                        //por si no tiene documento
+                        DatosRepository.usuarioActual = Usuario(id = user.uid, nombre = "Jugador", correo = user.email ?: "", rol = "Usuario")
                     }
+
+                    // Redirigir a PrincipalView sin importar si es Admin o Usuario
+                    startActivity(Intent(this, PrincipalView::class.java))
+                    finish()
                 }
                 .addOnFailureListener {
 
@@ -157,9 +151,9 @@ class MainActivity : AppCompatActivity() {
 
             ingresar(correotxt, contratxt)
 
-                firebaseAnalytics.logEvent(FirebaseAnalytics.Event.LOGIN){
-                    param(FirebaseAnalytics.Param.METHOD,"correo_contrasena") }
-            }
+            firebaseAnalytics.logEvent(FirebaseAnalytics.Event.LOGIN){
+                param(FirebaseAnalytics.Param.METHOD,"correo_contrasena") }
+        }
 
         btnGoogle.setOnClickListener {
             val signInIntent = googleSignInClient.signInIntent
@@ -173,8 +167,9 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        TraductorGlobal.prepararTraductor()
     }
-//Google
+    //Google
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         firebaseAuth.signInWithCredential(credential)
@@ -199,47 +194,45 @@ class MainActivity : AppCompatActivity() {
                                             "¡Bienvenido Administrador ${miUsuario.nombre}!",
                                             Toast.LENGTH_SHORT
                                         ).show()
-                                        val intent = Intent(this, DiagnosticoPruebas::class.java)
-                                        startActivity(intent)
-                                        finish()
-
                                     } else {
                                         Toast.makeText(
                                             this,
                                             "¡Bienvenido ${miUsuario?.nombre}!",
                                             Toast.LENGTH_SHORT
                                         ).show()
-                                        val intent = Intent(this, PrincipalView::class.java)
-                                        startActivity(intent)
-                                        finish()
                                     }
+
+                                    val intent = Intent(this, PrincipalView::class.java)
+                                    startActivity(intent)
+                                    finish()
+
                                     // si no existe documento se crea uno con datos del tipo
                                 } else {
-                                        val usuario = Usuario(
-                                            id = user.uid,
-                                            nombre = user.displayName ?: "Jugador",
-                                            correo = user.email ?: "",
-                                            rol = "Usuario"
-                                        )
+                                    val usuario = Usuario(
+                                        id = user.uid,
+                                        nombre = user.displayName ?: "Jugador",
+                                        correo = user.email ?: "",
+                                        rol = "Usuario"
+                                    )
 
-                                        db.collection("Usuarios").document(user.uid)
-                                            .set(usuario)
-                                            .addOnSuccessListener {
+                                    db.collection("Usuarios").document(user.uid)
+                                        .set(usuario)
+                                        .addOnSuccessListener {
 
-                                                DatosRepository.usuarioActual = usuario
-                                                Toast.makeText(this, "¡Usuario creado con éxito!", Toast.LENGTH_SHORT).show()
+                                            DatosRepository.usuarioActual = usuario
+                                            Toast.makeText(this, "¡Usuario creado con éxito!", Toast.LENGTH_SHORT).show()
 
-                                                val intent = Intent(this, PrincipalView::class.java)
-                                                startActivity(intent)
-                                                finish()
-                                            }
-                                            .addOnFailureListener {
-                                                Toast.makeText(
-                                                    this,
-                                                    "Error al guardar el perfil en la base de datos",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
+                                            val intent = Intent(this, PrincipalView::class.java)
+                                            startActivity(intent)
+                                            finish()
+                                        }
+                                        .addOnFailureListener {
+                                            Toast.makeText(
+                                                this,
+                                                "Error al guardar el perfil en la base de datos",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
 
                                 }
                             }.addOnFailureListener {
@@ -269,90 +262,88 @@ class MainActivity : AppCompatActivity() {
 
         firebaseAuth .signInWithEmailAndPassword(email, password)
 
-        .addOnCompleteListener(this) { task ->
-            if (task.isSuccessful) {
+            .addOnCompleteListener(this) { task ->
+                if (task.isSuccessful) {
 
-                val user = firebaseAuth .currentUser
+                    val user = firebaseAuth .currentUser
 
-                if(user != null){
+                    if(user != null){
 
-                    FirebaseFirestore.getInstance().collection("Usuarios").document(user.uid)
-                        .get()
-                        .addOnSuccessListener { documento ->
+                        FirebaseFirestore.getInstance().collection("Usuarios").document(user.uid)
+                            .get()
+                            .addOnSuccessListener { documento ->
 
-                            if (documento.exists()){
-                                val miUsuario = documento.toObject(Usuario::class.java)
-                                DatosRepository.usuarioActual = miUsuario
+                                if (documento.exists()){
+                                    val miUsuario = documento.toObject(Usuario::class.java)
+                                    DatosRepository.usuarioActual = miUsuario
 
-                                if (miUsuario?.rol == "Admin") {
-                                    Toast.makeText(this, "¡Bienvenido Administrador ${miUsuario.nombre}!", Toast.LENGTH_SHORT).show()
-                                    val intent = Intent(this, DiagnosticoPruebas::class.java)
+                                    if (miUsuario?.rol == "Admin") {
+                                        Toast.makeText(this, "¡Bienvenido Administrador ${miUsuario.nombre}!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(this, "¡Bienvenido ${miUsuario?.nombre}!", Toast.LENGTH_SHORT).show()
+                                    }
+
+                                    val intent = Intent(this, PrincipalView::class.java)
                                     startActivity(intent)
                                     finish()
 
-                                } else {
-                                    Toast.makeText(this, "¡Bienvenido ${miUsuario?.nombre}!", Toast.LENGTH_SHORT).show()
+                                }else{
+                                    val usuarioBasico = predeterminado(user.uid , user.email ?: "")
+                                    DatosRepository.usuarioActual = usuarioBasico
+
+                                    Toast.makeText(this, "¡Bienvenido Invitado!", Toast.LENGTH_SHORT).show()
                                     val intent = Intent(this, PrincipalView::class.java)
                                     startActivity(intent)
                                     finish()
                                 }
-                            }else{
-                                val usuarioBasico = predeterminado(user.uid , user.email ?: "")
-                                DatosRepository.usuarioActual = usuarioBasico
 
-                                Toast.makeText(this, "¡Bienvenido Invitado!", Toast.LENGTH_SHORT).show()
-                                val intent = Intent(this, PrincipalView::class.java)
-                                startActivity(intent)
-                                finish()
+                            }.addOnFailureListener {
+                                Toast.makeText(this, "Error al descargar perfil", Toast.LENGTH_SHORT).show()
+                                btnIngresar.isEnabled = true
+                                btnIngresar.text = "Ingresar"
                             }
-
-                        }.addOnFailureListener {
-                            Toast.makeText(this, "Error al descargar perfil", Toast.LENGTH_SHORT).show()
-                            btnIngresar.isEnabled = true
-                            btnIngresar.text = "Ingresar"
-                        }
-                }
-            } else {
-                val exception = task.exception
-
-                if (exception is FirebaseAuthInvalidCredentialsException || exception is FirebaseAuthInvalidUserException) {
-
-                    firebaseAuth.fetchSignInMethodsForEmail(email)
-                        .addOnCompleteListener { fetchTask ->
-                            if (fetchTask.isSuccessful) {
-                                val signInMethods = fetchTask.result?.signInMethods
-
-                                if (signInMethods != null && signInMethods.contains(GoogleAuthProvider.PROVIDER_ID)) {
-                                    Toast.makeText(this, "Esta cuenta usa Google. " +
-                                            "Por favor, usa el botón 'Ingresar con Google'.", Toast.LENGTH_LONG).show()
-                                } else {
-                                    val errorMensaje = when (exception){
-                                        is FirebaseAuthInvalidUserException -> "No existe cuenta con este correo"
-                                        is FirebaseAuthInvalidCredentialsException -> "La contraseña es incorrecta"
-                                        else -> "Error de credenciales"
-                                    }
-                                    Toast.makeText(this, errorMensaje, Toast.LENGTH_SHORT).show()
-                                }
-                            } else {
-                                Toast.makeText(this, "Error de conexión al verificar la cuenta",
-                                    Toast.LENGTH_SHORT).show()
-                            }
-
-                            // Restauramos el botón después de la comprobación
-                            btnIngresar.isEnabled = true
-                            btnIngresar.text = "Ingresar"
-                        }
+                    }
                 } else {
-                    // Otros errores (ej. sin internet)
-                    Toast.makeText(this, "Error al iniciar sesión, compruebe conexión",
-                        Toast.LENGTH_SHORT).show()
-                    btnIngresar.isEnabled = true
-                    btnIngresar.text = "Ingresar"
-                }
+                    val exception = task.exception
+
+                    if (exception is FirebaseAuthInvalidCredentialsException || exception is FirebaseAuthInvalidUserException) {
+
+                        firebaseAuth.fetchSignInMethodsForEmail(email)
+                            .addOnCompleteListener { fetchTask ->
+                                if (fetchTask.isSuccessful) {
+                                    val signInMethods = fetchTask.result?.signInMethods
+
+                                    if (signInMethods != null && signInMethods.contains(GoogleAuthProvider.PROVIDER_ID)) {
+                                        Toast.makeText(this, "Esta cuenta usa Google. " +
+                                                "Por favor, usa el botón 'Ingresar con Google'.", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        val errorMensaje = when (exception){
+                                            is FirebaseAuthInvalidUserException -> "No existe cuenta con este correo"
+                                            is FirebaseAuthInvalidCredentialsException -> "La contraseña es incorrecta"
+                                            else -> "Error de credenciales"
+                                        }
+                                        Toast.makeText(this, errorMensaje, Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(this, "Error de conexión al verificar la cuenta",
+                                        Toast.LENGTH_SHORT).show()
+                                }
+
+                                // Restauramos el botón después de la comprobación
+                                btnIngresar.isEnabled = true
+                                btnIngresar.text = "Ingresar"
+                            }
+                    } else {
+                        // Otros errores (ej. sin internet)
+                        Toast.makeText(this, "Error al iniciar sesión, compruebe conexión",
+                            Toast.LENGTH_SHORT).show()
+                        btnIngresar.isEnabled = true
+                        btnIngresar.text = "Ingresar"
+                    }
                 }
 
 
-        }
+            }
 
     }
 

@@ -84,17 +84,19 @@ class DetalleTorneoFragment : Fragment() {
                         }
 
                     //cargado de informacion al tvInfo
-                    tvInfo.text = """
-                Juego: ${torneo.juego} (${torneo.dispositivo})
-                Modalidad: ${torneo.modalidad} | Formato: ${torneo.formato}
-                Cupos: $cantidadInscritos / ${torneo.cupos}
-                
-                Apertura: ${torneo.fechaInscripcion}
-                Cierre: ${torneo.fechaCierre}
-                
-                Reglas:
-                ${torneo.reglas}
-                """.trimIndent()
+                    TraductorGlobal.traducir(torneo.reglas){ reglasTraducidas ->
+
+                        TraductorGlobal.traducir(torneo.modalidad){ modalidadTradu ->
+
+                            tvInfo.text = "Juego: ${torneo.juego} (${torneo.dispositivo})\n" +
+                                    "Modalidad: ${modalidadTradu} | Formato: ${torneo.formato}\n" +
+                                    "Cupos: $cantidadInscritos / ${torneo.cupos}\n\n" +
+                                    "Apertura: ${torneo.fechaInscripcion}\n" +
+                                    "Cierre: ${torneo.fechaCierre}\n\n" +
+                                    "Reglas:\n${reglasTraducidas}"
+
+                        }
+                    }
 
                     btnParticipantes.setOnClickListener {
                         if (querySnapshot.isEmpty) {
