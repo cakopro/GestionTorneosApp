@@ -26,19 +26,11 @@ class TorneoAdapter(
 
     override fun onBindViewHolder(holder: TorneoViewHolder, position: Int) {
         val torneo = listaTorneos[position]
+
         holder.tvNombre.text = torneo.nombre
-
-        TraductorGlobal.traducir("Juego: ${torneo.juego}") { resultadoJuego ->
-            holder.tvJuego.text = resultadoJuego
-        }
-
-        TraductorGlobal.traducir("Inicio: ${torneo.fechaInicio}") { resultadoFecha ->
-            holder.tvFecha.text = resultadoFecha
-        }
-
-        TraductorGlobal.traducir("Cupos: ${torneo.cupos}") { resultadoCupos ->
-            holder.tvCupos.text = resultadoCupos
-        }
+        holder.tvJuego.text = "Juego: ${torneo.juego}"
+        holder.tvFecha.text = "Inicio: ${torneo.fechaInicio}"
+        holder.tvCupos.text = "Cupos: ${torneo.cupos}"
 
         holder.itemView.setOnClickListener {
             onClick(torneo)

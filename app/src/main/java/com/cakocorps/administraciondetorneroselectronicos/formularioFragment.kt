@@ -156,6 +156,7 @@ class formularioFragment : Fragment() {
             // para que el calendario ni siquiera permita elegir antes de esos 3 días.
             mostrarSelectorFechaYHora(inicioTorneo, millisCierre + tresDiasMillis, 0L, "")
         }
+
         //si variable tiene un torneo guardado significa que alguien quiere editar
         val torneoAEditar = DatosRepository.torneoSeleccionado
         //aca se sabe
@@ -230,9 +231,9 @@ class formularioFragment : Fragment() {
                 reglas = txtReglas,
                 idCreador = torneoAEditar?.idCreador ?: miUid,
                 estado = "abierto"
-                )
+            )
 
-             //si torneo se encuentra almacenado significa que se busca editar
+            //si torneo se encuentra almacenado significa que se busca editar
             docRef.set(actualizadoTorneo)
                 .addOnSuccessListener {
                     val msj = if (torneoAEditar != null) "Torneo actualizado" else "¡Torneo creado con éxito!"
@@ -259,14 +260,9 @@ class formularioFragment : Fragment() {
                     boton.isEnabled = true
                     boton.text = if (torneoAEditar != null) "Actualizar Torneo" else "Guardar"
                 }
-
-
-
         }
-
-
-
     }
+
     private fun mostrarSelectorFechaYHora(campoDeTexto: TextInputEditText, minDateMillis: Long, minOffsetMillis: Long, mensajeError: String) {
         val calendario = Calendar.getInstance()
         val anio = calendario.get(Calendar.YEAR)
@@ -310,6 +306,4 @@ class formularioFragment : Fragment() {
             0L
         }
     }
-
-
 }

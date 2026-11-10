@@ -37,7 +37,6 @@ class DetalleTorneoFragment : Fragment() {
         val tvNombre = view.findViewById<TextView>(R.id.tvNombreDetalle)
         val tvInfo = view.findViewById<TextView>(R.id.tvInfoDetalle)
 
-
         //botones para ocultar y mostrar
         val layoutCreador = view.findViewById<View>(R.id.layoutBotonesCreador)
         val layoutInscripcion = view.findViewById<View>(R.id.layoutBotonesInscripcion)
@@ -49,18 +48,15 @@ class DetalleTorneoFragment : Fragment() {
 
         val btnParticipantes = view.findViewById<Button>(R.id.btnParticipantes)
 
-
         //ver torneo seleccionado y su usuario
         val torneo = DatosRepository.torneoSeleccionado
         val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
         firebaseAnalytics = Firebase.analytics
 
-
         if (torneo != null){
             tvNombre.text = torneo.nombre
             tvInfo.text = "Cargando información de cupos..."
-
 
             //cargado de inscritos en el torneo / ver si estas inscrito en el torneo selccionado
             db.collection("Inscripciones")
@@ -77,26 +73,18 @@ class DetalleTorneoFragment : Fragment() {
 
                     for (document in querySnapshot)
                         if (document.getString("idUsuario") == idUsuarioActual){
-
                             miInscripcion = document.toObject(Inscripcion::class.java)
                             miInscripcion.idInscripcion = document.id
                             break
                         }
 
-                    //cargado de informacion al tvInfo
-                    TraductorGlobal.traducir(torneo.reglas){ reglasTraducidas ->
-
-                        TraductorGlobal.traducir(torneo.modalidad){ modalidadTradu ->
-
-                            tvInfo.text = "Juego: ${torneo.juego} (${torneo.dispositivo})\n" +
-                                    "Modalidad: ${modalidadTradu} | Formato: ${torneo.formato}\n" +
-                                    "Cupos: $cantidadInscritos / ${torneo.cupos}\n\n" +
-                                    "Apertura: ${torneo.fechaInscripcion}\n" +
-                                    "Cierre: ${torneo.fechaCierre}\n\n" +
-                                    "Reglas:\n${reglasTraducidas}"
-
-                        }
-                    }
+                    // cargado de informacion al tvInfo (SIN EL TRADUCTOR)
+                    tvInfo.text = "Juego: ${torneo.juego} (${torneo.dispositivo})\n" +
+                            "Modalidad: ${torneo.modalidad} | Formato: ${torneo.formato}\n" +
+                            "Cupos: $cantidadInscritos / ${torneo.cupos}\n\n" +
+                            "Apertura: ${torneo.fechaInscripcion}\n" +
+                            "Cierre: ${torneo.fechaCierre}\n\n" +
+                            "Reglas:\n${torneo.reglas}"
 
                     btnParticipantes.setOnClickListener {
                         if (querySnapshot.isEmpty) {
@@ -151,8 +139,6 @@ class DetalleTorneoFragment : Fragment() {
                                 }
                         }
                     }
-
-
 
                     //para ver que botones o que interfaz darte
                     val escreador = torneo.idCreador == idUsuarioActual
@@ -276,14 +262,10 @@ class DetalleTorneoFragment : Fragment() {
                                 btnInscribirme.isEnabled = true
                                 btnInscribirme.text = "Inscribirse al Torneo"
                             }
-
                         }
-
                     }
 
-
                     btnInscribirme.setOnClickListener {
-
                         DatosRepository.inscripcionAEditar = miInscripcion
 
                         requireActivity().supportFragmentManager.beginTransaction()
@@ -292,19 +274,16 @@ class DetalleTorneoFragment : Fragment() {
                             .commit()
                     }
                 }
-
-
-
-
         }
+    }
 
+    private fun convertirFechaAMillis(fechaStr: String): Long {
+        return try {
+            val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            val fecha = formato.parse(fechaStr)
+            fecha?.time ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
     }
-        private fun convertirFechaAMillis(fechaStr: String): Long {
-            return try {
-                val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                val fecha = formato.parse(fechaStr)
-                fecha?.time ?: 0L
-            } catch (e: Exception) {
-                0L}
-    }
-    }
+}

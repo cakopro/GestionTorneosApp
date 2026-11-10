@@ -52,7 +52,6 @@ class MainActivity : AppCompatActivity() {
             try {
                 //conectarese con google
                 val account = task.getResult(ApiException::class.java)!!
-
                 firebaseAuthWithGoogle(account.idToken!!)
             } catch (e: ApiException) {
                 Toast.makeText(this, "Error al seleccionar cuenta de Google", Toast.LENGTH_SHORT).show()
@@ -73,33 +72,33 @@ class MainActivity : AppCompatActivity() {
         val user = firebaseAuth.currentUser
 
         if (user != null){
+            // 1. Bloquear la UI para que el usuario sepa que está cargando
+            val btnIngresar = findViewById<Button>(R.id.btnIngresar)
+            val btnGoogle = findViewById<Button>(R.id.btnGoogle)
+            val btnRegistrar = findViewById<Button>(R.id.btnRegistrar)
+
+            btnIngresar.isEnabled = false
+            btnRegistrar.isEnabled = false
+            btnGoogle.isEnabled = false
+            btnGoogle.text = "Cargando sesión..."
 
             FirebaseFirestore.getInstance().collection("Usuarios").document(user.uid)
                 .get()
                 .addOnSuccessListener { documento ->
-
                     if (documento.exists()) {
                         DatosRepository.usuarioActual = documento.toObject(Usuario::class.java)
                     } else {
-                        //por si no tiene documento
                         DatosRepository.usuarioActual = Usuario(id = user.uid, nombre = "Jugador", correo = user.email ?: "", rol = "Usuario")
                     }
-
-                    // Redirigir a PrincipalView sin importar si es Admin o Usuario
                     startActivity(Intent(this, PrincipalView::class.java))
                     finish()
                 }
                 .addOnFailureListener {
-
-                    //basico si es que falla
                     DatosRepository.usuarioActual = Usuario(id = user.uid, nombre = "Jugador", correo = user.email ?: "", rol = "Usuario")
                     startActivity(Intent(this, PrincipalView::class.java))
                     finish()
-
                 }
         }
-
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,7 +119,6 @@ class MainActivity : AppCompatActivity() {
         firebaseAnalytics = FirebaseAnalytics.getInstance(this)
         firebaseAuth = FirebaseAuth.getInstance()
 
-
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -132,7 +130,6 @@ class MainActivity : AppCompatActivity() {
 
             val correotxt = correo.text.toString()
             val contratxt = contra.text.toString()
-
 
             if (correotxt.isEmpty() || contratxt.isEmpty()){
                 Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
@@ -148,7 +145,6 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-
             ingresar(correotxt, contratxt)
 
             firebaseAnalytics.logEvent(FirebaseAnalytics.Event.LOGIN){
@@ -160,15 +156,13 @@ class MainActivity : AppCompatActivity() {
             googleLauncher.launch(signInIntent)
         }
 
-
-//registrarse
+        //registrarse
         findViewById<Button>(R.id.btnRegistrar).setOnClickListener {
             val intent = Intent(this, Registrarse::class.java)
             startActivity(intent)
         }
-
-        TraductorGlobal.prepararTraductor()
     }
+
     //Google
     private fun firebaseAuthWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -252,8 +246,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
     }
-
-
 
     private fun ingresar(email: String, password: String) {
         val btnIngresar = findViewById<Button>(R.id.btnIngresar)
@@ -341,10 +333,7 @@ class MainActivity : AppCompatActivity() {
                         btnIngresar.text = "Ingresar"
                     }
                 }
-
-
             }
-
     }
 
     private fun predeterminado(uid: String, email: String): Usuario{
@@ -357,6 +346,4 @@ class MainActivity : AppCompatActivity() {
         )
         return usuario
     }
-
-
 }
