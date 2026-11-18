@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "AdministracionDeTornerosElectronicos"
 include(":app")
- 
+include(":TournamentBracket")

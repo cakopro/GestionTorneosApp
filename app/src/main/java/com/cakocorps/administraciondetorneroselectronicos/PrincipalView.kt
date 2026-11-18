@@ -1,8 +1,10 @@
 package com.cakocorps.administraciondetorneroselectronicos
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -14,12 +16,16 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.navigation.NavigationView
+import com.google.firebase.analytics.logEvent
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 
 class PrincipalView : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
+    private val db = FirebaseFirestore.getInstance()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,10 +49,70 @@ class PrincipalView : AppCompatActivity() {
         val navView = findViewById<NavigationView>(R.id.nav_view)
         val draweLa = findViewById<DrawerLayout>(R.id.main)
 
-        val btnCerrar = findViewById<Button>(R.id.btnSalir)
-        btnCerrar.setOnClickListener {
-            cerrarSesion()
+        tolbar.inflateMenu(R.menu.tolbar_menu)
+
+
+        tolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.item_cerrar_sesion -> {
+                    cerrarSesion()
+                    true
+                }
+                R.id.item_elimiar_cuenta -> {
+
+                    AlertDialog.Builder(this)
+                        .setTitle("Eliminar cuenta")
+                        .setMessage("¿ Esta seguro de que desea eliminar su cuenta?")
+                        .setPositiveButton("Eliminar"){dialog, _ ->
+
+                            val user = FirebaseAuth.getInstance().currentUser
+                            val uid = user?.uid
+
+                            if (uid != null){
+
+                                val batch = db.batch()
+
+                                db.collection("Inscripciones")
+                                    .whereEqualTo("idUsuario",uid)
+                                    .get()
+                                    .addOnSuccessListener { inscripciones ->
+
+                                        for (document in inscripciones){
+                                            batch.delete(document.reference)
+                                        }
+                                        db.collection("Torneos")
+                                            .whereEqualTo("idCreador",uid)
+                                            .get()
+                                            .addOnSuccessListener { torneos ->
+                                                for (document in torneos){
+                                                    batch.delete(document.reference)
+                                                }
+                                            val usuarioRef = db.collection("Usuarios").document(uid)
+                                                batch.delete(usuarioRef)
+                                                batch.commit().addOnSuccessListener {
+                                                    eliminarCuenta()
+                                                }.addOnFailureListener {
+                                                    Toast.makeText(this, "Error al borrar los datos.", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                    }
+                            }
+                            dialog.dismiss()
+
+                        }
+                        .setNegativeButton("Cancelar") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .create()
+                        .show()
+                   true
+                }
+                else -> false
+            }
         }
+
+
+
 
         //para que cuando se abra arranque con la lista torneos
         if (savedInstanceState == null) {
@@ -97,6 +163,24 @@ class PrincipalView : AppCompatActivity() {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
             finish()
+        }
+    }
+
+    fun eliminarCuenta(){
+
+        val user = firebaseAuth.currentUser
+
+        user?.delete()?.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                googleSignInClient.signOut().addOnCompleteListener {
+                    Toast.makeText(this, "Cuenta eliminada correctamente", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(this, MainActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            } else {
+                Toast.makeText(this, "Error al eliminar. Por favor, vuelve a iniciar sesión e intenta de nuevo.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }

@@ -122,11 +122,10 @@
                         android:text="Cupos:"
                         android:layout_marginTop="10dp"/>
 
-                    <TextView
-                        android:id="@+id/cupos"
+                    <Spinner
+                        android:id="@+id/spiCupos"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="TextView" />
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

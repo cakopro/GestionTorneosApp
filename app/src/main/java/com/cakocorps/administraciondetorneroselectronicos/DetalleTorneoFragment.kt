@@ -9,13 +9,11 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlin.compareTo
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -37,7 +35,6 @@ class DetalleTorneoFragment : Fragment() {
         val tvNombre = view.findViewById<TextView>(R.id.tvNombreDetalle)
         val tvInfo = view.findViewById<TextView>(R.id.tvInfoDetalle)
 
-        //botones para ocultar y mostrar
         val layoutCreador = view.findViewById<View>(R.id.layoutBotonesCreador)
         val layoutInscripcion = view.findViewById<View>(R.id.layoutBotonesInscripcion)
 
@@ -46,39 +43,37 @@ class DetalleTorneoFragment : Fragment() {
         val btnInscribirme = view.findViewById<Button>(R.id.btnInscribirme)
         val btnSalirTorneo = view.findViewById<Button>(R.id.btnSalirTorneo)
 
-        val btnParticipantes = view.findViewById<Button>(R.id.btnParticipantes)
-
-        //ver torneo seleccionado y su usuario
         val torneo = DatosRepository.torneoSeleccionado
         val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
         firebaseAnalytics = Firebase.analytics
 
-        if (torneo != null){
+        if (torneo != null) {
             tvNombre.text = torneo.nombre
-            tvInfo.text = "Cargando información de cupos..."
+            tvInfo.text = "Cargando información..."
 
-            //cargado de inscritos en el torneo / ver si estas inscrito en el torneo selccionado
+            // Consultar cuántos inscritos hay y si el usuario actual está inscrito
             db.collection("Inscripciones")
-                .whereEqualTo("idTorneo",torneo.id)
+                .whereEqualTo("idTorneo", torneo.id)
                 .get()
                 .addOnSuccessListener { querySnapshot ->
 
-                    firebaseAnalytics.logEvent("listado_consultado"){
+                    firebaseAnalytics.logEvent("listado_consultado") {
                         param("tipo_entidad", "Inscripcion")
                     }
 
                     val cantidadInscritos = querySnapshot.size()
                     var miInscripcion: Inscripcion? = null
 
-                    for (document in querySnapshot)
-                        if (document.getString("idUsuario") == idUsuarioActual){
+                    for (document in querySnapshot) {
+                        if (document.getString("idUsuario") == idUsuarioActual) {
                             miInscripcion = document.toObject(Inscripcion::class.java)
                             miInscripcion.idInscripcion = document.id
                             break
                         }
+                    }
 
-                    // cargado de informacion al tvInfo (SIN EL TRADUCTOR)
+                    // Cargar texto informativo
                     tvInfo.text = "Juego: ${torneo.juego} (${torneo.dispositivo})\n" +
                             "Modalidad: ${torneo.modalidad} | Formato: ${torneo.formato}\n" +
                             "Cupos: $cantidadInscritos / ${torneo.cupos}\n\n" +
@@ -86,68 +81,10 @@ class DetalleTorneoFragment : Fragment() {
                             "Cierre: ${torneo.fechaCierre}\n\n" +
                             "Reglas:\n${torneo.reglas}"
 
-                    btnParticipantes.setOnClickListener {
-                        if (querySnapshot.isEmpty) {
-                            Toast.makeText(
-                                requireContext(),
-                                "No hay participantes inscritos aún",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            //  Consultar todos los usuarios registrados para obtener sus nombres reales
-                            db.collection("Usuarios")
-                                .get()
-                                .addOnSuccessListener { usuariosSnapshot ->
-                                    // Crear un mapa con [idUsuario -> nombre]
-                                    val mapaUsuarios = usuariosSnapshot.documents.associate { doc ->
-                                        doc.id to (doc.getString("nombre") ?: "Usuario")
-                                    }
+                    val esCreador = torneo.idCreador == idUsuarioActual
 
-                                    val listaParticipantes =
-                                        querySnapshot.documents.mapIndexed { index, doc ->
-                                            val inscripcion = doc.toObject(Inscripcion::class.java)
-
-                                            val texto = if (inscripcion?.esEquipo == true) {
-                                                // Modo Grupos (se mantiene intacto)
-                                                val miembros =
-                                                    inscripcion.integrantes.joinToString(separator = "\n")
-                                                "Equipo: ${inscripcion.nombreEquipo}\n$miembros"
-                                            } else {
-                                                // Modo Individual: Obtener el nombre del usuario usando su idUsuario
-                                                val nombreUsuarioReal =
-                                                    mapaUsuarios[inscripcion?.idUsuario]
-                                                        ?: "Participante Desconocido"
-                                                "Nombre Equipo: ${inscripcion?.nombreEquipo}\nUsuario: $nombreUsuarioReal"
-                                            }
-
-                                            "--------------------------------------------------\n${index + 1}. " +
-                                                    "$texto\n--------------------------------------------------"
-                                        }.toTypedArray()
-
-                                    AlertDialog.Builder(requireContext())
-                                        .setTitle("Participantes (${querySnapshot.size()})")
-                                        .setItems(listaParticipantes, null)
-                                        .setPositiveButton("Cerrar", null)
-                                        .show()
-                                }
-                                .addOnFailureListener {
-                                    Toast.makeText(
-                                        requireContext(),
-                                        "Error al cargar la lista de usuarios",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                        }
-                    }
-
-                    //para ver que botones o que interfaz darte
-                    val escreador = torneo.idCreador == idUsuarioActual
-
-                    //mostrar botones para borrar y actualizar.
-                    if (escreador){
-
+                    if (esCreador) {
                         layoutCreador.visibility = View.VISIBLE
-                        //desaparece todo lo de inscribirse
                         layoutInscripcion.visibility = View.GONE
 
                         btnEditar.setOnClickListener {
@@ -158,47 +95,34 @@ class DetalleTorneoFragment : Fragment() {
                         }
 
                         btnEliminar.setOnClickListener {
-
                             AlertDialog.Builder(context)
                                 .setTitle("Eliminar Torneo")
-                                .setMessage("¿ Esta seguro de que quiere eliminar este torneo?")
-                                .setPositiveButton("Eliminar"){dialog, _ ->
-
+                                .setMessage("¿Está seguro de que quiere eliminar este torneo?")
+                                .setPositiveButton("Eliminar") { dialog, _ ->
                                     db.collection("Torneos").document(torneo.id).delete()
                                         .addOnSuccessListener {
-                                            Toast.makeText(requireContext(), "Torneo eliminado correctamente",
-                                                Toast.LENGTH_SHORT).show()
-
-                                            firebaseAnalytics.logEvent("registro_eliminado"){
+                                            Toast.makeText(requireContext(), "Torneo eliminado correctamente", Toast.LENGTH_SHORT).show()
+                                            firebaseAnalytics.logEvent("registro_eliminado") {
                                                 param("tipo_entidad", "Torneo")
                                             }
-
                                             requireActivity().supportFragmentManager.popBackStack()
                                         }
                                     dialog.dismiss()
                                 }
-                                .setNegativeButton("Cancelar"){ dialog, _ ->
-
-                                    dialog.dismiss()
-                                }.create()
+                                .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
+                                .create()
                                 .show()
                         }
-                    }else{
-                        //desaparece tpdp ñp de creador
+                    } else {
                         layoutCreador.visibility = View.GONE
                         layoutInscripcion.visibility = View.VISIBLE
 
-                        //tiempos para validar inscripcion
                         val tiempoActual = System.currentTimeMillis()
                         val millisApertura = convertirFechaAMillis(torneo.fechaInscripcion)
                         val millisCierre = convertirFechaAMillis(torneo.fechaCierre)
 
-
-                        if (miInscripcion != null){
-
-                            // si ya esta inscrito
+                        if (miInscripcion != null) {
                             btnSalirTorneo.visibility = View.VISIBLE
-
 
                             if (tiempoActual > millisCierre) {
                                 btnSalirTorneo.isEnabled = false
@@ -212,42 +136,31 @@ class DetalleTorneoFragment : Fragment() {
                                 btnInscribirme.text = "Actualizar mis datos"
                             }
 
-
-                            //salir del torneo con confirmacion
                             btnSalirTorneo.setOnClickListener {
-
                                 AlertDialog.Builder(context)
                                     .setTitle("Salir del Torneo")
-                                    .setMessage("¿ Esta seguro de que desea salir del torneo?")
-                                    .setPositiveButton("Eliminar"){dialog, _ ->
-
+                                    .setMessage("¿Está seguro de que desea salir del torneo?")
+                                    .setPositiveButton("Salir") { dialog, _ ->
                                         db.collection("Inscripciones").document(miInscripcion.idInscripcion).delete()
                                             .addOnSuccessListener {
-                                                Toast.makeText(requireContext(), "Has salido del torneo",
-                                                    Toast.LENGTH_SHORT).show()
-
-                                                firebaseAnalytics.logEvent("registro_eliminado"){
+                                                Toast.makeText(requireContext(), "Has salido del torneo", Toast.LENGTH_SHORT).show()
+                                                firebaseAnalytics.logEvent("registro_eliminado") {
                                                     param("tipo_entidad", "Inscripcion")
                                                 }
-
-                                                requireActivity().supportFragmentManager.popBackStack()
-
+                                                // Refrescar contenedor
+                                                requireActivity().supportFragmentManager.beginTransaction()
+                                                    .replace(R.id.fragment_container, TorneoContenedorFragment())
+                                                    .commit()
                                             }
                                         dialog.dismiss()
-
                                     }
-                                    .setNegativeButton("Cancelar"){ dialog, _ ->
-
-                                        dialog.dismiss()
-                                    }.create()
+                                    .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
+                                    .create()
                                     .show()
                             }
-
-                        }else{
+                        } else {
                             btnSalirTorneo.visibility = View.GONE
                             btnInscribirme.visibility = View.VISIBLE
-
-                            //validaciones tiempo de inscripcion, capacidad del torneo
 
                             if (tiempoActual < millisApertura) {
                                 btnInscribirme.isEnabled = false
@@ -266,12 +179,47 @@ class DetalleTorneoFragment : Fragment() {
                     }
 
                     btnInscribirme.setOnClickListener {
-                        DatosRepository.inscripcionAEditar = miInscripcion
+                        if (torneo.modalidad == "Equipos") {
+                            DatosRepository.inscripcionAEditar = miInscripcion
+                            requireActivity().supportFragmentManager.beginTransaction()
+                                .replace(R.id.fragment_container, InscripcionFormulario())
+                                .addToBackStack(null)
+                                .commit()
+                        } else {
+                            btnInscribirme.isEnabled = false
+                            btnInscribirme.text = "Inscribiendo..."
 
-                        requireActivity().supportFragmentManager.beginTransaction()
-                            .replace(R.id.fragment_container, InscripcionFormulario())
-                            .addToBackStack(null)
-                            .commit()
+                            val nombreUsuarioReal = DatosRepository.usuarioActual?.nombre ?: "Usuario"
+                            val correoUsuario = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: ""
+
+                            val docRef = db.collection("Inscripciones").document()
+                            val nuevaInscripcion = Inscripcion(
+                                idInscripcion = docRef.id,
+                                idTorneo = torneo.id,
+                                idUsuario = idUsuarioActual,
+                                esEquipo = false,
+                                nombreEquipo = nombreUsuarioReal,
+                                integrantes = emptyList(),
+                                contactoLider = correoUsuario,
+                                pagoRealizado = false
+                            )
+
+                            docRef.set(nuevaInscripcion)
+                                .addOnSuccessListener {
+                                    Toast.makeText(requireContext(), "¡Inscrito correctamente!", Toast.LENGTH_SHORT).show()
+                                    firebaseAnalytics.logEvent("registro_creado") { param("tipo_entidad", "Inscripcion") }
+
+                                    // Refrescar contenedor para ver estado actualizado
+                                    requireActivity().supportFragmentManager.beginTransaction()
+                                        .replace(R.id.fragment_container, TorneoContenedorFragment())
+                                        .commit()
+                                }
+                                .addOnFailureListener {
+                                    Toast.makeText(requireContext(), "Error al inscribirse", Toast.LENGTH_SHORT).show()
+                                    btnInscribirme.isEnabled = true
+                                    btnInscribirme.text = "Inscribirse al Torneo"
+                                }
+                        }
                     }
                 }
         }

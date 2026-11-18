@@ -61,7 +61,7 @@ class MisTorneosFragment : Fragment() {
                         rvTorneosCreados.adapter = TorneoAdapter(listaCreados) { torneoSeleccionado ->
                             DatosRepository.torneoSeleccionado = torneoSeleccionado
                             requireActivity().supportFragmentManager.beginTransaction()
-                                .replace(R.id.fragment_container, DetalleTorneoFragment())
+                                .replace(R.id.fragment_container, TorneoContenedorFragment())
                                 .addToBackStack(null)
                                 .commit()
                         }
@@ -71,7 +71,7 @@ class MisTorneosFragment : Fragment() {
                         rvTorneosInscritos.adapter = TorneoAdapter(listaInscritos) { torneoSeleccionado ->
                             DatosRepository.torneoSeleccionado = torneoSeleccionado
                             requireActivity().supportFragmentManager.beginTransaction()
-                                .replace(R.id.fragment_container, DetalleTorneoFragment())
+                                .replace(R.id.fragment_container, TorneoContenedorFragment())
                                 .addToBackStack(null)
                                 .commit()
                         }

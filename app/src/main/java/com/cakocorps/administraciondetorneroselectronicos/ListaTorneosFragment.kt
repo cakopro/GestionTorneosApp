@@ -53,7 +53,7 @@ class ListaTorneosFragment : Fragment() {
                             DatosRepository.torneoSeleccionado = torneoSeleccionado
 
                             requireActivity().supportFragmentManager.beginTransaction()
-                                .replace(R.id.fragment_container, DetalleTorneoFragment())
+                                .replace(R.id.fragment_container, TorneoContenedorFragment())
                                 .addToBackStack(null)
                                 .commit()
                         }

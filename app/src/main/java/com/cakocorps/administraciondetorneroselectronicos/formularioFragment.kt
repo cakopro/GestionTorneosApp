@@ -51,7 +51,7 @@ class formularioFragment : Fragment() {
         val spinnerJuegos= view.findViewById<Spinner>(R.id.spiJuegos)
         val spinnerModalidad = view.findViewById<Spinner>(R.id.spiModalidad)
         val spinnerFormato = view.findViewById<Spinner>(R.id.spiFormato)
-        val cupos = view.findViewById<TextView>(R.id.cupos)
+        val spinnerCupos = view.findViewById<Spinner>(R.id.spiCupos)
 
         //segundo card view
         val inscripcion = view.findViewById<TextInputEditText>(R.id.edtInscripcion)
@@ -65,7 +65,8 @@ class formularioFragment : Fragment() {
         val boton = view.findViewById<Button>(R.id.btnGuardar)
 
         //listas
-        val listaFormato = arrayOf("Play offs", "Fase de grupos")
+        val listaFormato = arrayOf("Play offs")
+        val listaCupos = arrayOf("16","8","4")
         val listaVideojuegos = DatosRepository.listaVideojuego
         val nombresJuegos = listaVideojuegos.map{it.nombre}
 
@@ -75,8 +76,12 @@ class formularioFragment : Fragment() {
         val adaptadorJuegos = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, nombresJuegos)
         spinnerJuegos.adapter = adaptadorJuegos
 
+        val adaptadorCupos = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, listaCupos)
+        spinnerCupos.adapter = adaptadorCupos
+
         var esPrimeraCargaJuegos = true
 
+        formato.text = "El formato de play offs se trata de eliminación directa."
         firebaseAnalytics = Firebase.analytics
 
         //encargado de al tocar un juego cargar los otros spinner con datos de ese juego
@@ -97,31 +102,12 @@ class formularioFragment : Fragment() {
                     val posMod = juegoSeleccionado.modalidades.indexOf(torneo.modalidad)
                     if (posMod >= 0) spinnerModalidad.setSelection(posMod)
 
+
                     esPrimeraCargaJuegos = false
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-
-        // formato selecciona y indicar cupos
-        spinnerFormato.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
-
-            override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
-                //dependiendo de que formato se selecciona rellena de una forma u otra
-                val formatoSeleccionado = listaFormato[position]
-
-                if (formatoSeleccionado == "Play offs"){
-                    cupos.text = "16"
-                    formato.text = "El formato de play offs se trata de eliminacion directa con 16 cupos disponibles"
-                }else if (formatoSeleccionado == "Fase de grupos"){
-                    cupos.text = "32"
-                    formato.text = "se Divide en grupos todos contra todos y avancan los que tengan mas puntos a una fase de play offs."
-                }
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
-
 
         //fechas
         inscripcion.isFocusable = false
@@ -168,7 +154,7 @@ class formularioFragment : Fragment() {
             inscripcion.setText(torneoAEditar.fechaInscripcion)
             cierreInscripcion.setText(torneoAEditar.fechaCierre)
             inicioTorneo.setText(torneoAEditar.fechaInicio)
-            cupos.text = torneoAEditar.cupos.toString()
+            reglas.setText(torneoAEditar.reglas)
 
 
             val posFormato = listaFormato.indexOf(torneoAEditar.formato)
@@ -176,6 +162,9 @@ class formularioFragment : Fragment() {
 
             val posJuego = nombresJuegos.indexOf(torneoAEditar.juego)
             if (posJuego >= 0) spinnerJuegos.setSelection(posJuego)
+
+            val posCupos = listaCupos.asList().indexOf(torneoAEditar.cupos.toString())
+            if (posCupos >= 0) spinnerCupos.setSelection(posCupos)
         }
 
 
@@ -184,9 +173,9 @@ class formularioFragment : Fragment() {
             val txtInscripcion = inscripcion.text.toString().trim()
             val txtCierre = cierreInscripcion.text.toString().trim()
             val txtInicio = inicioTorneo.text.toString().trim()
-
+            val seleccionCuposStr = spinnerCupos.selectedItem?.toString() ?: "16"
+            val numeroCupos = seleccionCuposStr.toIntOrNull() ?: 16
             val txtReglas = reglas.text.toString().trim()
-            val numeroCupos = cupos.text.toString().toIntOrNull() ?:16
 
             val juego = spinnerJuegos.selectedItem?.toString() ?: ""
             val dispositivo = spinnerDispositivos.selectedItem?.toString() ?: ""

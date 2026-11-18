@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#FAFAFA"
+    android:padding="16dp">
+
+    <!-- Mensaje informativo (antes del sorteo) -->
+    <TextView
+        android:id="@+id/tvEstadoCruces"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:layout_marginBottom="16dp"
+        android:visibility="gone" />
+
+    <!-- Árbol del torneo -->
+    <com.mazecube.tournamentbracket.TournamentBracketView
+        android:id="@+id/tournamentBracketView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone"
+        app:background_color="#FAFAFA"
+        app:bracket_text_size="18dp"
+        app:bracket_width_padding="12dp"
+        app:bracket_height_padding="18dp"
+        app:bracket_round="12dp"
+        app:bracket_round_gap_size="90dp"
+        app:default_line_width="4"
+        app:default_line_color="#BDBDBD"
+        app:winner_line_width="8"
+        app:winner_line_color="#2E7D32"
+        app:bracket_default_color="#E3E8EF"
+        app:bracket_winner_color="#A5D6A7"
+        app:bracket_loser_color="#EEEEEE"
+        app:bracket_image_visible="false"
+        app:bracket_text_max_length="12"
+        app:bracket_point_text_visible="true"
+        app:bracket_point_text_size="16dp"
+        app:bracket_point_text_max_length="3"
+        app:bracket_bye_text="" />
+
+    <Button
+        android:id="@+id/btnSimular"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:text="Generar Sorteo" />
+
+</LinearLayout>

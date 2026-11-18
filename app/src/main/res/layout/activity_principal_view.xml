@@ -42,15 +42,6 @@
 
             </ImageView>
 
-            <Button
-                android:id="@+id/btnSalir"
-                android:layout_width="77dp"
-                android:layout_height="48dp"
-                android:layout_gravity="end"
-                android:foreground="@android:drawable/btn_dialog"
-                android:text="Button"
-                tools:layout_editor_absoluteX="289dp"
-                tools:layout_editor_absoluteY="92dp" />
         </androidx.appcompat.widget.Toolbar>
 
 
