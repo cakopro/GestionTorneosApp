@@ -254,6 +254,25 @@
                             android:hint="Ej: No mirar pantallas" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+
+                    <Button
+                        android:id="@+id/btnSeleccionarTrofeo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Subir Imagen de Trofeo" />
+
+                    <ImageView
+                        android:id="@+id/ivTrofeoPreview"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="10dp"
+                        android:contentDescription="Vista previa del trofeo"
+                        android:scaleType="centerCrop"
+                        android:src="@android:drawable/ic_menu_gallery" />
+
+
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

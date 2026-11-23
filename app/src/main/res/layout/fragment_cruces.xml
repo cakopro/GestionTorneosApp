@@ -45,6 +45,7 @@
         app:bracket_point_text_max_length="3"
         app:bracket_bye_text="" />
 
+
     <Button
         android:id="@+id/btnSimular"
         android:layout_width="match_parent"

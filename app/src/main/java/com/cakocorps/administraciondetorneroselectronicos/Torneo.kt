@@ -14,5 +14,6 @@ data class Torneo(
     val tipoEntrada: String = "",
     val reglas: String = "",
     val idCreador: String = "",
-    val estado: String = "abierto"
+    val estado: String = "abierto",
+    val trofeoUrl: String = ""
 )

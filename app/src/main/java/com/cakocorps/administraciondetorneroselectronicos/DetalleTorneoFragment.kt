@@ -1,18 +1,23 @@
 package com.cakocorps.administraciondetorneroselectronicos
 
 import android.app.AlertDialog
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.util.Base64
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.analytics
 import com.google.firebase.analytics.logEvent
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -42,6 +47,7 @@ class DetalleTorneoFragment : Fragment() {
         val btnEliminar = view.findViewById<Button>(R.id.btnEliminar)
         val btnInscribirme = view.findViewById<Button>(R.id.btnInscribirme)
         val btnSalirTorneo = view.findViewById<Button>(R.id.btnSalirTorneo)
+        val ivTrofeoDetalle = view.findViewById<ImageView?>(R.id.ivTrofeoDetalle)
 
         val torneo = DatosRepository.torneoSeleccionado
         val idUsuarioActual = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -51,6 +57,21 @@ class DetalleTorneoFragment : Fragment() {
         if (torneo != null) {
             tvNombre.text = torneo.nombre
             tvInfo.text = "Cargando información..."
+
+            if (ivTrofeoDetalle != null && torneo.trofeoUrl.isNotBlank()) {
+                val bitmap = decodificarBase64ABitmap(torneo.trofeoUrl)
+                if (bitmap != null) {
+                    ivTrofeoDetalle.setImageBitmap(bitmap)
+                    ivTrofeoDetalle.visibility = View.VISIBLE
+                }
+            }
+
+            if (torneo.idCreador == idUsuarioActual) {
+                layoutCreador.visibility = View.VISIBLE
+                layoutInscripcion.visibility = View.GONE
+                configurarCreador(btnEditar, btnEliminar)
+            }
+
 
             // Consultar cuántos inscritos hay y si el usuario actual está inscrito
             db.collection("Inscripciones")
@@ -87,33 +108,8 @@ class DetalleTorneoFragment : Fragment() {
                         layoutCreador.visibility = View.VISIBLE
                         layoutInscripcion.visibility = View.GONE
 
-                        btnEditar.setOnClickListener {
-                            requireActivity().supportFragmentManager.beginTransaction()
-                                .replace(R.id.fragment_container, formularioFragment())
-                                .addToBackStack(null)
-                                .commit()
-                        }
 
-                        btnEliminar.setOnClickListener {
-                            AlertDialog.Builder(context)
-                                .setTitle("Eliminar Torneo")
-                                .setMessage("¿Está seguro de que quiere eliminar este torneo?")
-                                .setPositiveButton("Eliminar") { dialog, _ ->
-                                    db.collection("Torneos").document(torneo.id).delete()
-                                        .addOnSuccessListener {
-                                            Toast.makeText(requireContext(), "Torneo eliminado correctamente", Toast.LENGTH_SHORT).show()
-                                            firebaseAnalytics.logEvent("registro_eliminado") {
-                                                param("tipo_entidad", "Torneo")
-                                            }
-                                            requireActivity().supportFragmentManager.popBackStack()
-                                        }
-                                    dialog.dismiss()
-                                }
-                                .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
-                                .create()
-                                .show()
-                        }
-                    } else {
+                    }else {
                         layoutCreador.visibility = View.GONE
                         layoutInscripcion.visibility = View.VISIBLE
 
@@ -224,6 +220,93 @@ class DetalleTorneoFragment : Fragment() {
                 }
         }
     }
+
+    private fun configurarCreador(btnEditar: Button, btnEliminar: Button) {
+    val torneo = DatosRepository.torneoSeleccionado ?: return
+    val yaInicio = System.currentTimeMillis() >= convertirFechaAMillis(torneo.fechaCierre)
+
+    btnEditar.setOnClickListener {
+        comprobarSorteo(torneo.id) { sorteado ->
+            when {
+                sorteado -> Toast.makeText(requireContext(), "No se puede editar: el torneo ya tiene sorteo", Toast.LENGTH_SHORT).show()
+                yaInicio -> Toast.makeText(requireContext(), "No se puede editar: el torneo ya inició", Toast.LENGTH_SHORT).show()
+                else -> requireActivity().supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, formularioFragment())
+                    .addToBackStack(null)
+                    .commit()
+            }
+        }
+    }
+
+
+
+        btnEliminar.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Eliminar Torneo")
+                .setMessage("Se eliminarán también todas las inscripciones y los partidos del torneo. Esta acción no se puede deshacer. ¿Continuar?")
+                .setPositiveButton("Eliminar") { _, _ ->
+                    eliminarTorneoCompleto(
+                        torneo.id,
+                        onExito = {
+                            Toast.makeText(requireContext(), "Torneo eliminado correctamente", Toast.LENGTH_SHORT).show()
+                            firebaseAnalytics.logEvent("registro_eliminado") {
+                                param("tipo_entidad", "Torneo")
+                            }
+                            requireActivity().supportFragmentManager.popBackStack()
+                        },
+                        onError = {
+                            Toast.makeText(requireContext(), "No se pudo eliminar el torneo", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
+}
+
+    private fun eliminarTorneoCompleto(idTorneo: String, onExito: () -> Unit, onError: () -> Unit) {
+        db.collection("Inscripciones").whereEqualTo("idTorneo", idTorneo).get()
+            .addOnSuccessListener { inscripciones ->
+                db.collection("Partidos").whereEqualTo("idTorneo", idTorneo).get()
+                    .addOnSuccessListener { partidos ->
+                        db.collection("Podios").whereEqualTo("idTorneo", idTorneo).get()
+                            .addOnSuccessListener { podios ->
+                                val batch = db.batch()
+                                inscripciones.forEach { batch.delete(it.reference) }
+                                partidos.forEach { batch.delete(it.reference) }
+                                podios.forEach { batch.delete(it.reference) }
+                                batch.delete(db.collection("Torneos").document(idTorneo))
+                                batch.commit()
+                                    .addOnSuccessListener { onExito() }
+                                    .addOnFailureListener { onError() }
+                            }
+                            .addOnFailureListener { onError() }
+                    }
+                    .addOnFailureListener { onError() }
+            }
+            .addOnFailureListener { onError() }
+    }
+
+    private fun comprobarSorteo(idTorneo: String, onResultado: (Boolean) -> Unit) {
+        db.collection("Partidos")
+        .whereEqualTo("idTorneo", idTorneo)
+        .limit(1)
+        .get()
+        .addOnSuccessListener { onResultado(!it.isEmpty) }
+        .addOnFailureListener {
+            Toast.makeText(requireContext(), "No se pudo verificar el estado del torneo", Toast.LENGTH_SHORT).show()
+        }
+}
+
+    private fun decodificarBase64ABitmap(base64Str: String): Bitmap? {
+        return try {
+            val bytes = Base64.decode(base64Str, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
 
     private fun convertirFechaAMillis(fechaStr: String): Long {
         return try {

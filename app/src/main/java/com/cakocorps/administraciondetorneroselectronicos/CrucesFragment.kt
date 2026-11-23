@@ -31,6 +31,10 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
     private var fechaInicio = ""
     private var inicioMillis = 0L
     private val MINUTOS_ENTRE_PARTIDOS = 0
+    private var guardarPodioAlRecargar = false
+
+    private var nombreTorneo = ""
+    private var partidoTercerLugar: Partido? = null
 
     private var partidos: List<Partido> = emptyList()
     private val competidores = mutableMapOf<Int, Competidor>()
@@ -55,9 +59,17 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
         bracketView = view.findViewById(R.id.tournamentBracketView)
         btnSortear = view.findViewById(R.id.btnSimular)
 
+        nombreTorneo = torneo.nombre
+
         btnSortear.setOnClickListener { generarSorteo() }
         bracketView.onMatchClickListener = { rondaIdx, partidoIdx ->
             alTocarPartido(rondaIdx + 1, partidoIdx + 1)
+        }
+
+        bracketView.onThirdPlaceClickListener = {
+            val t = partidoTercerLugar
+            if (t != null) mostrarDetalleTercerLugar(t)
+            else Toast.makeText(requireContext(), "Se define cuando terminen las semifinales", Toast.LENGTH_SHORT).show()
         }
 
 
@@ -163,7 +175,7 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
         batch.commit()
             .addOnSuccessListener {
                 if (ronda == 1) Toast.makeText(requireContext(), "¡Sorteo generado y guardado!", Toast.LENGTH_SHORT).show()
-                verificarEstadoTorneo()          // recarga y entra por el camino de siempre
+                verificarEstadoTorneo()
             }
             .addOnFailureListener {
                 btnSortear.isEnabled = true
@@ -171,14 +183,17 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
             }
     }
 
-    private fun reconstruirBracket(lista: List<Partido>) {
+    private fun reconstruirBracket(todos: List<Partido>) {
+        // el tercer lugar se maneja aparte del resto de rondas
+        partidoTercerLugar = todos.firstOrNull { it.esTercerLugar }
+        val lista = todos.filter { !it.esTercerLugar }
         partidos = lista
+
         val porRonda = lista.groupBy { it.ronda }
             .mapValues { (_, v) -> v.sortedBy { it.numeroPartido } }
 
         val ronda1 = porRonda[1] ?: return
 
-        // 1. Lista de la ronda 1, con ids 1, 2, 3... y el diccionario de quién es quién
         competidores.clear()
         val participantes = mutableListOf<MatchParticipant>()
         var id = 1
@@ -195,9 +210,8 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
 
         var matches = bracketView.initParticipant(participantes, isShuffle = false)
         var ronda = 1
-        var campeon: String? = null
+        var finalPartido: Partido? = null
 
-        // 2. Ronda por ronda: marcar ganadores y, si la ronda está completa, avanzar
         while (true) {
             val guardados = porRonda[ronda].orEmpty()
 
@@ -213,27 +227,57 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
             val jugadoresRonda = matches.flatMap { listOfNotNull(it.playerA, it.playerB) }
             val siguiente = bracketView.updateMatchData(jugadoresRonda)
 
-            if (siguiente.isEmpty()) {                       // era la final
-                campeon = guardados.firstOrNull()?.nombreGanador
+            if (siguiente.isEmpty()) {
+                finalPartido = guardados.firstOrNull()
                 break
             }
 
             ronda++
             matches = siguiente
-            // La ronda nueva aún no existe en Firestore: la crea el creador
             if (porRonda[ronda] == null && esCreador) {
                 guardarRonda(siguiente, ronda)
             }
         }
 
+        if (participantes.size >= 4) {
+            val t = partidoTercerLugar
+            if (t == null) {
+                bracketView.setThirdPlace(null, null)
+            } else {
+                val a = MatchParticipant(9001, t.nombreJugador1, null, null, null)
+                val b = MatchParticipant(9002, t.nombreJugador2, null, null, null)
+                if (t.idGanador.isNotEmpty()) {
+                    val ganaA = t.idGanador == t.idJugador1
+                    a.isWinner = ganaA
+                    a.point = if (ganaA) "1" else "0"
+                    b.isWinner = !ganaA
+                    b.point = if (ganaA) "0" else "1"
+                }
+                bracketView.setThirdPlace(a, b)
+            }
+        }
+
         bracketView.invalidate()
 
-        tvEstado.visibility = View.VISIBLE
-        tvEstado.text = if (campeon != null) {
-            "Campeón: $campeon"
-        } else {
-            "Fase actual: ${nombreFase(matches.size * 2)}"
+        // ¿Terminó el torneo? = final jugada y (si aplica) tercer lugar jugado
+        val finalizado = finalPartido != null &&
+                (participantes.size < 4 || partidoTercerLugar?.idGanador?.isNotEmpty() == true)
+
+        // El podio se guarda una sola vez: justo después de que el creador registra un resultado
+        if (guardarPodioAlRecargar) {
+            guardarPodioAlRecargar = false
+            val fp = finalPartido
+            if (finalizado && esCreador && fp != null) guardarPodios(fp, partidoTercerLugar)
         }
+
+        tvEstado.visibility = View.VISIBLE
+        tvEstado.text = when {
+            finalizado -> "Torneo finalizado"
+            finalPartido != null -> "Final jugada. Falta el partido por el tercer lugar."
+            else -> "Fase actual: ${nombreFase(matches.size * 2)}"
+        }
+
+        crearTercerLugarSiHaceFalta(porRonda)
     }
 
     private fun marcarResultado(m: MatchData, p: Partido?) {
@@ -293,13 +337,12 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
                     }
                     .setNeutralButton("Horario") { _, _ -> programarHorario(partido) }
             } else {
-                // la ronda ya está cerrada: el ganador no se puede cambiar, pero el horario sí
                 dialogo
                     .setPositiveButton("Horario") { _, _ -> programarHorario(partido) }
                     .setNegativeButton("Cerrar", null)
             }
         } else {
-            dialogo.setPositiveButton("Cerrar", null)     // usuario normal: solo lectura
+            dialogo.setPositiveButton("Cerrar", null)
         }
 
         dialogo.show()
@@ -308,10 +351,103 @@ class CrucesFragment : Fragment(R.layout.fragment_cruces) {
     private fun guardarGanador(partido: Partido, idGanador: String, nombreGanador: String) {
         db.collection("Partidos").document(partido.idPartido)
             .update(mapOf("idGanador" to idGanador, "nombreGanador" to nombreGanador))
-            .addOnSuccessListener { verificarEstadoTorneo() }   // recarga: marca, y avanza si la ronda se completó
+            .addOnSuccessListener {
+                guardarPodioAlRecargar = true       // al recargar, si el torneo ya terminó, se guarda el podio
+                verificarEstadoTorneo()
+            }
             .addOnFailureListener {
                 Toast.makeText(requireContext(), "No se pudo guardar el ganador", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun guardarPodios(finalPartido: Partido, tercer: Partido?) {
+        val batch = db.batch()
+        val ahora = System.currentTimeMillis()
+
+        fun agregar(puesto: Int, titulo: String, idJugador: String, nombre: String) {
+            val docId = "${idTorneo}_$puesto"           // id fijo: si se corrige un resultado, se sobrescribe
+            batch.set(
+                db.collection("Podios").document(docId),
+                Podio(docId, idTorneo, nombreTorneo, puesto, titulo, idJugador, nombre, ahora)
+            )
+        }
+
+        val ganaJ1 = finalPartido.idGanador == finalPartido.idJugador1
+        agregar(1, "Campeón", finalPartido.idGanador, finalPartido.nombreGanador)
+        agregar(
+            2, "Subcampeón",
+            if (ganaJ1) finalPartido.idJugador2 else finalPartido.idJugador1,
+            if (ganaJ1) finalPartido.nombreJugador2 else finalPartido.nombreJugador1
+        )
+        if (tercer != null) agregar(3, "Tercer lugar", tercer.idGanador, tercer.nombreGanador)
+
+        // El torneo pasa a "finalizado" (útil para tu vista nueva y para los listados)
+        batch.update(db.collection("Torneos").document(idTorneo), "estado", "finalizado")
+
+        batch.commit().addOnFailureListener {
+            Toast.makeText(requireContext(), "No se pudo guardar el podio", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    // Crea el partido por el tercer lugar cuando las dos semifinales ya tienen ganador
+    private fun crearTercerLugarSiHaceFalta(porRonda: Map<Int, List<Partido>>) {
+        if (!esCreador || partidoTercerLugar != null) return
+
+        // Semifinales = la ronda de 2 partidos reales (sin "Pasa Libre")
+        val semis = porRonda.entries.firstOrNull { (_, v) ->
+            v.size == 2 && v.all { it.idJugador2.isNotEmpty() }
+        } ?: return
+        if (!semis.value.all { it.idGanador.isNotEmpty() }) return
+
+        val perdedores = semis.value.map { p ->
+            if (p.idGanador == p.idJugador1) p.idJugador2 to p.nombreJugador2
+            else p.idJugador1 to p.nombreJugador1
+        }
+
+        val docId = "${idTorneo}_tercer_lugar"
+        val tercer = Partido(
+            idPartido = docId,
+            idTorneo = idTorneo,
+            ronda = semis.key + 1,                       // se juega el mismo día que la final
+            numeroPartido = 0,
+            esTercerLugar = true,
+            fechaHora = calcularHorario(semis.key + 1, 1),
+            idJugador1 = perdedores[0].first,
+            nombreJugador1 = perdedores[0].second,
+            idJugador2 = perdedores[1].first,
+            nombreJugador2 = perdedores[1].second
+        )
+        db.collection("Partidos").document(docId).set(tercer)
+            .addOnSuccessListener { verificarEstadoTorneo() }
+            .addOnFailureListener {
+                Toast.makeText(requireContext(), "No se pudo crear el partido por el tercer lugar", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+
+
+    private fun mostrarDetalleTercerLugar(p: Partido) {
+        val mensaje = "Horario: ${formatearHorario(p.fechaHora)}\n" +
+                (if (p.idGanador.isEmpty()) "Ganador: pendiente" else "Ganador: ${p.nombreGanador}")
+
+        val dialogo = AlertDialog.Builder(requireContext())
+            .setTitle("Tercer lugar: ${p.nombreJugador1} vs ${p.nombreJugador2}")
+            .setMessage(mensaje)
+
+        if (esCreador) {
+            dialogo
+                .setPositiveButton("Ganó ${p.nombreJugador1}") { _, _ ->
+                    guardarGanador(p, p.idJugador1, p.nombreJugador1)
+                }
+                .setNegativeButton("Ganó ${p.nombreJugador2}") { _, _ ->
+                    guardarGanador(p, p.idJugador2, p.nombreJugador2)
+                }
+                .setNeutralButton("Horario") { _, _ -> programarHorario(p) }
+        } else {
+            dialogo.setPositiveButton("Cerrar", null)
+        }
+        dialogo.show()
     }
 
     private fun nombreFase(espaciosEnRonda: Int) = when (espaciosEnRonda) {

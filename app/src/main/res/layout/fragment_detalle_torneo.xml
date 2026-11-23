@@ -43,6 +43,17 @@
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
+                <!-- NUEVO: Imagen del trofeo -->
+                <ImageView
+                    android:id="@+id/ivTrofeoDetalle"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="10dp"
+                    android:contentDescription="Trofeo del torneo"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"

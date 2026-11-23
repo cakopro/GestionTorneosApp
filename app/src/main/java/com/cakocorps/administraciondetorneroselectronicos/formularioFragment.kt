@@ -2,6 +2,8 @@ package com.cakocorps.administraciondetorneroselectronicos
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -14,7 +16,9 @@ import android.widget.Spinner
 import android.widget.TextView
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ArrayAdapter
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import com.google.firebase.Firebase
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.analytics
@@ -25,12 +29,30 @@ import java.util.Locale
 import kotlin.math.cos
 import java.text.SimpleDateFormat
 import com.google.firebase.analytics.logEvent
+import android.net.Uri
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 
 class formularioFragment : Fragment() {
 
     private val db = FirebaseFirestore.getInstance()
     private lateinit var firebaseAnalytics: FirebaseAnalytics
 
+    private var trofeoBase64Actual: String = ""
+    private var ivTrofeoPreviewRef: ImageView? = null
+
+    private val seleccionarImagenLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+            if (uri != null) {
+                val base64 = convertirUriABase64(uri)
+                if (base64 != null) {
+                    trofeoBase64Actual = base64
+                    ivTrofeoPreviewRef?.setImageBitmap(decodificarBase64ABitmap(base64))
+                } else {
+                    Toast.makeText(requireContext(), "No se pudo procesar la imagen", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -62,7 +84,15 @@ class formularioFragment : Fragment() {
         // ultima card y boton
         val formato = view.findViewById<TextView>(R.id.formato)
         val reglas = view.findViewById<TextInputEditText>(R.id.etReglas)
+        val btnSeleccionarTrofeo = view.findViewById<Button>(R.id.btnSeleccionarTrofeo)
+        val ivTrofeoPreview = view.findViewById<ImageView>(R.id.ivTrofeoPreview)
         val boton = view.findViewById<Button>(R.id.btnGuardar)
+
+        ivTrofeoPreviewRef = ivTrofeoPreview
+
+        btnSeleccionarTrofeo.setOnClickListener {
+            seleccionarImagenLauncher.launch("image/*")
+        }
 
         //listas
         val listaFormato = arrayOf("Play offs")
@@ -165,6 +195,11 @@ class formularioFragment : Fragment() {
 
             val posCupos = listaCupos.asList().indexOf(torneoAEditar.cupos.toString())
             if (posCupos >= 0) spinnerCupos.setSelection(posCupos)
+
+            trofeoBase64Actual = torneoAEditar.trofeoUrl
+            if (trofeoBase64Actual.isNotBlank()) {
+                ivTrofeoPreview.setImageBitmap(decodificarBase64ABitmap(trofeoBase64Actual))
+            }
         }
 
 
@@ -219,7 +254,8 @@ class formularioFragment : Fragment() {
                 fechaInicio = txtInicio,
                 reglas = txtReglas,
                 idCreador = torneoAEditar?.idCreador ?: miUid,
-                estado = "abierto"
+                estado = "abierto",
+                trofeoUrl = trofeoBase64Actual
             )
 
             //si torneo se encuentra almacenado significa que se busca editar
@@ -249,6 +285,40 @@ class formularioFragment : Fragment() {
                     boton.isEnabled = true
                     boton.text = if (torneoAEditar != null) "Actualizar Torneo" else "Guardar"
                 }
+        }
+    }
+
+    private fun convertirUriABase64(uri: Uri): String? {
+        return try {
+            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val originalBitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream.close()
+            if (originalBitmap == null) return null
+
+            val maxSize = 300
+            val ratio = minOf(
+                maxSize.toFloat() / originalBitmap.width,
+                maxSize.toFloat() / originalBitmap.height,
+                1f
+            )
+            val width = (originalBitmap.width * ratio).toInt().coerceAtLeast(1)
+            val height = (originalBitmap.height * ratio).toInt().coerceAtLeast(1)
+            val resized = Bitmap.createScaledBitmap(originalBitmap, width, height, true)
+
+            val outputStream = ByteArrayOutputStream()
+            resized.compress(Bitmap.CompressFormat.JPEG, 75, outputStream)
+            Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun decodificarBase64ABitmap(base64Str: String): Bitmap? {
+        return try {
+            val bytes = Base64.decode(base64Str, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (e: Exception) {
+            null
         }
     }
 
